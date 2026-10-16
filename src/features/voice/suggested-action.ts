@@ -35,7 +35,7 @@ function fromService(service: HealthService): SuggestedAction {
 }
 
 export function suggestActionFor(tool: ToolResult): SuggestedAction {
-  return tool.tool === 'analisar_sintomas' ? fromCare(tool.result.recommendedCare) : fromService(tool.result.servico);
+  return tool.tool === 'registrar_orientacao_sintomas' ? fromCare(tool.result.recommendedCare) : fromService(tool.result.servico);
 }
 
 /**

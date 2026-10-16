@@ -13,16 +13,15 @@ export interface VoiceAssistant {
   suggestedAction: SuggestedAction | null;
   mode: VoiceMode;
   start: () => Promise<void>;
+  /** Encerra a sessão (`session.close`); a transcrição continua disponível. */
   stop: () => void;
   /** Sem argumento alterna; com argumento define o estado do microfone. */
   mute: (muted?: boolean) => void;
-  /** Permite digitar durante a conversa por voz (a resposta continua falada). */
-  sendText: (text: string) => Promise<void>;
 }
 
-/** Conversa por voz com o GPT Live (WebRTC) ou com o roteiro simulado. */
+/** Conversa por voz com o GPT-Live (WebRTC) ou com o roteiro simulado. */
 export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}): VoiceAssistant {
-  const { session, mode, start, stop, mute, sendText } = useAssistantSession('voice', options);
+  const { session, mode, start, stop, mute } = useAssistantSession('voice', options);
   return {
     state: session.status,
     transcript: session.transcript,
@@ -33,6 +32,5 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}): Voice
     start,
     stop,
     mute,
-    sendText,
   };
 }

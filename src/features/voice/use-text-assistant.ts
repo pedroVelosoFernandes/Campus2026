@@ -18,8 +18,8 @@ export interface TextAssistant {
 }
 
 /**
- * Chat por texto (tela Conversas). Usa a MESMA sessão Realtime, reducer,
- * transcrição e ferramentas da voz, mas sem microfone e com respostas em texto.
+ * Chat por texto (tela Conversas). Usa o MESMO modelo de delegação (via `/api/assistant-text`), reducer,
+ * transcrição e ferramentas da voz. O GPT-Live não aceita texto digitado.
  */
 export function useTextAssistant(options: UseTextAssistantOptions = {}): TextAssistant {
   const { session, mode, start, stop, sendText } = useAssistantSession('text', options);

@@ -6,12 +6,11 @@ import { useTextAssistant } from '@/features/voice/use-text-assistant';
 import { useVoiceAssistant } from '@/features/voice/use-voice-assistant';
 import {
   buildIntroScript,
-  createMockSymptomAnalyzer,
   createMockUnitFinder,
   createMockVoiceTransport,
   getMockCoordinates,
-  MOCK_SYMPTOM_ARGS,
-  MOCK_SYMPTOM_RESULT,
+  MOCK_SYMPTOM_ASSESSMENT,
+  MOCK_SYMPTOM_CALL_ID,
 } from '@/mocks/voice-conversation';
 
 jest.mock('react-native-webrtc', () => ({ RTCPeerConnection: jest.fn(), mediaDevices: {} }));
@@ -20,7 +19,7 @@ beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
 /** Avança o relógio em passos, deixando as promessas (ferramentas) resolverem entre eles. */
-async function advance(ms: number, step = 250) {
+async function advance(ms: number, step = 100) {
   for (let elapsed = 0; elapsed < ms; elapsed += step) {
     await act(async () => {
       jest.advanceTimersByTime(Math.min(step, ms - elapsed));
@@ -31,7 +30,6 @@ async function advance(ms: number, step = 250) {
 function mockDeps(mode: 'voice' | 'text') {
   return {
     transport: createMockVoiceTransport({ stepDelayMs: 100, mode }),
-    analyzer: createMockSymptomAnalyzer(500),
     unitFinder: createMockUnitFinder(),
     getCoordinates: getMockCoordinates,
   };
@@ -49,32 +47,33 @@ describe('resolveVoiceMode', () => {
   });
 });
 
-describe('useVoiceAssistant com a conversa simulada', () => {
-  it('febre e dor de cabeça: analisa sintomas, fala a orientação e busca UBS', async () => {
+describe('useVoiceAssistant com o GPT-Live simulado', () => {
+  it('febre e dor de cabeça: delegação avalia sintomas, busca UBS e o assistente fala a orientação', async () => {
     const deps = mockDeps('voice');
     const sendSpy = jest.spyOn(deps.transport, 'send');
-    const analyzeSpy = jest.spyOn(deps.analyzer, 'analyze');
     const { result } = await renderHook(() => useVoiceAssistant(deps));
 
     expect(result.current.state).toBe('idle');
     await act(() => result.current.start());
-    expect(result.current.state).toBe('listening');
-
-    // Fim do roteiro inicial: a ferramenta foi chamada e o analisador está "pensando".
     await advance(buildIntroScript(100).reduce((total, step) => total + step.delayMs, 0));
-    expect(analyzeSpy).toHaveBeenCalledWith(MOCK_SYMPTOM_ARGS, {});
-    expect(result.current.state).toBe('analyzing_symptoms');
 
-    await advance(500);
-    expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'conversation.item.create' }));
-    expect(sendSpy).toHaveBeenLastCalledWith({ type: 'response.create' });
+    // Resultado da avaliação devolvido ao backend e conversa retomada.
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'response.item.create',
+        item: expect.objectContaining({ type: 'function_call_output', call_id: MOCK_SYMPTOM_CALL_ID }),
+      }),
+    );
+    expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'response.create' }));
 
-    await advance(30_000);
+    await advance(20_000);
     expect(result.current.state).toBe('listening');
     const roles = result.current.transcript.map((message) => message.role);
-    expect(roles).toEqual(['assistant', 'user', 'assistant', 'user', 'analysis', 'assistant', 'units', 'assistant']);
-    const spoken = result.current.transcript[5];
-    expect(spoken.role === 'assistant' && spoken.text).toBe(MOCK_SYMPTOM_RESULT.orientation);
+    expect(roles).toEqual(['assistant', 'user', 'assistant', 'user', 'assistant', 'analysis', 'units', 'assistant']);
+    expect(result.current.transcript[1]).toMatchObject({ text: 'Tô com febre e dor de cabeça desde anteontem.' });
+    const spoken = result.current.transcript[7];
+    expect(spoken.role === 'assistant' && spoken.text).toContain(MOCK_SYMPTOM_ASSESSMENT.orientation);
+    expect(spoken.role === 'assistant' && spoken.text).toContain('UBS');
     expect(result.current.suggestedAction).toMatchObject({ kind: 'cuidar-saude' });
 
     await act(() => result.current.stop());
@@ -97,7 +96,7 @@ describe('useVoiceAssistant com a conversa simulada', () => {
       connect: jest.fn().mockRejectedValue(new Error('Microfone negado')),
       send: jest.fn(),
       setMuted: jest.fn(),
-      disconnect: jest.fn(),
+      disconnect: jest.fn().mockResolvedValue(undefined),
     };
     const { result } = await renderHook(() => useVoiceAssistant({ ...mockDeps('voice'), transport }));
     await act(() => result.current.start());
@@ -107,7 +106,7 @@ describe('useVoiceAssistant com a conversa simulada', () => {
   });
 });
 
-describe('useTextAssistant com a conversa simulada', () => {
+describe('useTextAssistant com o backend simulado', () => {
   it('vacinação por texto: conecta sozinho, busca unidades e sugere a tela de vacinação', async () => {
     const deps = mockDeps('text');
     const sendSpy = jest.spyOn(deps.transport, 'send');
@@ -115,13 +114,9 @@ describe('useTextAssistant com a conversa simulada', () => {
     const text = 'Quero tomar a vacina da gripe, onde vou?';
 
     await act(() => result.current.sendMessage(text));
-    expect(sendSpy).toHaveBeenCalledWith({
-      type: 'conversation.item.create',
-      item: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] },
-    });
-    expect(sendSpy).toHaveBeenCalledWith({ type: 'response.create', response: { output_modalities: ['text'] } });
+    expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app.user_text', text }));
 
-    await advance(30_000);
+    await advance(20_000);
     const roles = result.current.transcript.map((message) => message.role);
     expect(roles).toEqual(['user', 'assistant', 'units', 'assistant']);
     const units = result.current.transcript[2];

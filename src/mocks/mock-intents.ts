@@ -1,10 +1,10 @@
 import { SYMPTOM_TOOL_NAME, UNITS_TOOL_NAME, type ToolName } from '@/features/voice/tools';
 import type { HealthService, UnitSearchResult } from '@/services/health-units/types';
-import type { SymptomInput, SymptomResult } from '@/services/symptom-model/types';
+import type { SymptomResult } from '@/services/symptom-model/types';
 
 /**
  * "Cérebro" falso da conversa simulada: identifica a intenção por palavras-chave
- * (inclusive algumas gírias) e decide qual ferramenta o GPT Live chamaria.
+ * (inclusive algumas gírias) e decide qual ferramenta o backend de delegação pediria.
  * Só para demo — o modelo real entende linguagem natural de verdade.
  */
 
@@ -19,6 +19,18 @@ export const EMERGENCY_REPLY =
 export const HELP_REPLY =
   'Posso te ajudar a encontrar vacina, entender onde procurar atendimento por sintomas, ' +
   'fazer teleconsulta ou marcar consulta de rotina. O que você precisa?';
+
+/** Avaliação que o backend simulado registra para relatos leves (febre, dor de cabeça...). */
+export const MOCK_SYMPTOM_ASSESSMENT: SymptomResult = {
+  urgency: 'pouco_urgente',
+  orientation:
+    'Pelo que você contou, não parece uma emergência. Beba bastante água, descanse ' +
+    'e procure a UBS mais próxima para avaliação. Se tiver falta de ar, manchas no corpo ou ' +
+    'febre acima de 39 graus, vá a uma UPA.',
+  recommendedCare: 'ubs',
+  warningSigns: ['falta de ar', 'manchas vermelhas no corpo', 'febre acima de 39 °C', 'vômitos persistentes'],
+  source: 'model',
+};
 
 const RED_FLAGS = /dor no peito|falta de ar|sem ar|desmai|convuls|boca torta|fala enrolada|sangrando muito/;
 const SYMPTOM_WORDS: [RegExp, string][] = [
@@ -48,10 +60,10 @@ export function routeMockIntent(rawText: string): MockIntent {
   }
   const sintomas = SYMPTOM_WORDS.filter(([pattern]) => pattern.test(text)).map(([, name]) => name);
   if (sintomas.length > 0 || /t[oô] ruim|baqueado|passando mal|sintoma/.test(text)) {
-    const args: SymptomInput = { sintomas: sintomas.length > 0 ? sintomas : ['mal-estar'] };
-    const duration = /(\d+|um|uma|dois|duas|tr[eê]s) (dias?|semanas?)\b/.exec(text);
-    if (duration) args.duracao = duration[0];
-    return { kind: 'tool', name: SYMPTOM_TOOL_NAME, args: { ...args }, preface: 'Certo, vou analisar o que você contou.' };
+    // O "backend" simulado registra uma avaliação fixa, como faria o modelo de sintomas.
+    const { urgency, orientation, recommendedCare, warningSigns } = MOCK_SYMPTOM_ASSESSMENT;
+    const args = { urgency, orientation, recommendedCare, warningSigns };
+    return { kind: 'tool', name: SYMPTOM_TOOL_NAME, args, preface: 'Certo, vou avaliar o que você contou.' };
   }
   if (/rotina|marcar consulta|check.?up|consulta/.test(text)) {
     return unitsIntent('consulta_rotina', 'A consulta de rotina é na UBS. Vou ver a mais indicada.');

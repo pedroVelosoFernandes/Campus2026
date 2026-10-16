@@ -1,80 +1,92 @@
 import type { FetchLike } from '@/services/symptom-model/types';
 
-import type { RealtimeClientEvent, RealtimeServerEvent, TransportHandlers, VoiceTransport } from '../types';
+import { createEventIdFactory } from '../delegation';
+import type { LiveClientEvent, LiveServerEvent, TransportHandlers, VoiceTransport } from '../types';
 import type { DataChannelLike, MediaStreamLike, PeerConnectionLike, WebRTCModule } from './types';
 
 /**
- * Transporte WebRTC para a Realtime API ("GPT Live").
- * Handshake (docs: https://developers.openai.com/api/docs/guides/realtime-webrtc):
- * 1. o app pede um client secret efêmero à nossa rota `/api/realtime-session`;
- * 2. cria a oferta SDP e faz `POST https://api.openai.com/v1/realtime/calls`
- *    com `Authorization: Bearer <efêmero>` e `Content-Type: application/sdp`;
- * 3. aplica a resposta SDP; eventos trafegam no data channel `oai-events`.
+ * Transporte WebRTC para o GPT-Live.
+ * Handshake (docs: https://developers.openai.com/api/docs/guides/realtime-webrtc, seção GPT-Live):
+ * 1. o app cria o canal `oai-events` e a oferta SDP;
+ * 2. envia a oferta para a NOSSA rota `/api/live-session`, que chama
+ *    `POST /v1/live/sessions` com a chave do projeto e devolve a resposta SDP;
+ * 3. aplica a resposta e espera `session.started` (não envia `session.start`);
+ * 4. ao sair, envia `session.close` e espera `session.closed`.
  */
 
-export const OPENAI_REALTIME_CALLS_URL = 'https://api.openai.com/v1/realtime/calls';
-export const REALTIME_DATA_CHANNEL = 'oai-events';
+export const LIVE_DATA_CHANNEL = 'oai-events';
+export const CONNECT_TIMEOUT_MS = 15_000;
+export const CLOSE_TIMEOUT_MS = 3_000;
+
+export interface LiveSessionAnswer {
+  sessionId: string;
+  sdp: string;
+}
 
 export interface WebRTCTransportOptions {
-  /** Busca o client secret efêmero no nosso backend. */
-  getClientSecret: () => Promise<string>;
+  /** Envia a oferta SDP ao nosso servidor e devolve a resposta do GPT-Live. */
+  requestSession: (offerSdp: string) => Promise<LiveSessionAnswer>;
   webrtc: WebRTCModule;
-  /**
-   * `audio` (padrão): voz com microfone. `text`: modo chat, sem microfone; a
-   * sessão é trocada para saída só em texto via `session.update`.
-   */
-  mode?: 'audio' | 'text';
-  fetchImpl?: FetchLike;
-  callsUrl?: string;
+  connectTimeoutMs?: number;
+  closeTimeoutMs?: number;
 }
 
-export async function fetchClientSecret(apiUrl: string, fetchImpl: FetchLike = (u, i) => fetch(u, i)) {
-  const response = await fetchImpl(`${apiUrl.replace(/\/+$/, '')}/api/realtime-session`, { method: 'POST' });
-  if (!response.ok) throw new Error(`Não foi possível iniciar a sessão de voz (${response.status})`);
-  const data = (await response.json()) as { clientSecret?: unknown };
-  if (typeof data.clientSecret !== 'string') throw new Error('Sessão de voz sem client secret');
-  return data.clientSecret;
+export async function requestLiveSession(
+  apiUrl: string,
+  offerSdp: string,
+  fetchImpl: FetchLike = (url, init) => fetch(url, init),
+): Promise<LiveSessionAnswer> {
+  const response = await fetchImpl(`${apiUrl.replace(/\/+$/, '')}/api/live-session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/sdp' },
+    body: offerSdp,
+  });
+  if (!response.ok) throw new Error(`Não foi possível iniciar a conversa por voz (${response.status})`);
+  const data = (await response.json()) as Partial<LiveSessionAnswer>;
+  if (typeof data.sdp !== 'string' || typeof data.sessionId !== 'string') {
+    throw new Error('Resposta inválida do servidor de voz');
+  }
+  return { sessionId: data.sessionId, sdp: data.sdp };
 }
 
-function parseServerEvent(data: unknown): RealtimeServerEvent | null {
+export function parseServerEvent(data: unknown): LiveServerEvent | null {
   if (typeof data !== 'string') return null;
   try {
     const parsed = JSON.parse(data) as { type?: unknown };
-    return typeof parsed.type === 'string' ? (parsed as RealtimeServerEvent) : null;
+    return typeof parsed.type === 'string' ? (parsed as LiveServerEvent) : null;
   } catch {
     return null;
   }
 }
 
-function waitForOpen(channel: DataChannelLike): Promise<void> {
-  if (channel.readyState === 'open') return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    channel.addEventListener('open', () => resolve());
-    channel.addEventListener('error', () => reject(new Error('Falha ao abrir o canal de eventos')));
+/** Promessa resolvida por um evento, com limite de tempo. */
+function waiter(timeoutMs: number, timeoutMessage: string) {
+  let resolve: () => void = () => {};
+  let reject: (error: Error) => void = () => {};
+  const promise = new Promise<void>((res, rej) => {
+    const timer = setTimeout(() => rej(new Error(timeoutMessage)), timeoutMs);
+    resolve = () => (clearTimeout(timer), res());
+    reject = (error) => (clearTimeout(timer), rej(error));
   });
+  return { promise, resolve, reject };
 }
 
-/** Troca de SDP: envia a oferta à OpenAI com o client secret efêmero e aplica a resposta. */
-async function negotiate(peer: PeerConnectionLike, clientSecret: string, doFetch: FetchLike, url: string) {
-  const offer = await peer.createOffer();
-  await peer.setLocalDescription(offer);
-  const response = await doFetch(url, {
-    method: 'POST',
-    body: offer.sdp,
-    headers: { Authorization: `Bearer ${clientSecret}`, 'Content-Type': 'application/sdp' },
-  });
-  if (!response.ok) throw new Error(`Falha na negociação WebRTC (${response.status})`);
-  await peer.setRemoteDescription({ type: 'answer', sdp: await response.text() });
+async function negotiate(pc: PeerConnectionLike, options: WebRTCTransportOptions) {
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  if (!offer.sdp) throw new Error('Oferta SDP vazia');
+  const answer = await options.requestSession(offer.sdp);
+  await pc.setRemoteDescription({ type: 'answer', sdp: answer.sdp });
 }
 
 export function createWebRTCTransport(options: WebRTCTransportOptions): VoiceTransport {
-  const doFetch: FetchLike = options.fetchImpl ?? ((url, init) => fetch(url, init));
+  const nextEventId = createEventIdFactory('evt_rtc');
   let pc: PeerConnectionLike | null = null;
   let channel: DataChannelLike | null = null;
   let stream: MediaStreamLike | null = null;
   let detachAudio: (() => void) | null = null;
-  let closed = false;
-  const textMode = options.mode === 'text';
+  let closing: ReturnType<typeof waiter> | null = null;
+  let closed = true;
 
   function teardown() {
     closed = true;
@@ -85,12 +97,20 @@ export function createWebRTCTransport(options: WebRTCTransportOptions): VoiceTra
     pc = channel = stream = detachAudio = null;
   }
 
-  function wire(peer: PeerConnectionLike, events: DataChannelLike, handlers: TransportHandlers) {
-    events.addEventListener('message', (event) => {
-      const parsed = parseServerEvent(event.data);
-      if (parsed) handlers.onEvent(parsed);
+  function send(event: LiveClientEvent) {
+    if (channel?.readyState === 'open') channel.send(JSON.stringify(event));
+  }
+
+  // Eventos chegam por um RTCDataChannel da nossa própria conexão, não por postMessage entre janelas.
+  function wire(peer: PeerConnectionLike, dataChannel: DataChannelLike, handlers: TransportHandlers, started: () => void) {
+    dataChannel.addEventListener('message', (message) => {
+      const event = parseServerEvent(message.data);
+      if (!event) return;
+      if (event.type === 'session.started') started();
+      if (event.type === 'session.closed') closing?.resolve();
+      handlers.onEvent(event);
     });
-    events.addEventListener('close', () => {
+    dataChannel.addEventListener('close', () => {
       if (!closed) handlers.onClose();
     });
     peer.addEventListener('connectionstatechange', () => {
@@ -101,38 +121,40 @@ export function createWebRTCTransport(options: WebRTCTransportOptions): VoiceTra
   return {
     async connect(handlers) {
       closed = false;
+      const ready = waiter(options.connectTimeoutMs ?? CONNECT_TIMEOUT_MS, 'O assistente demorou para responder');
       try {
-        const clientSecret = await options.getClientSecret();
+        const localStream = await options.webrtc.getUserMedia();
+        stream = localStream;
         pc = options.webrtc.createPeerConnection();
-        if (textMode) {
-          pc.addTransceiver('audio', { direction: 'recvonly' });
-        } else {
-          const localStream = await options.webrtc.getUserMedia();
-          stream = localStream;
-          localStream.getAudioTracks().forEach((track) => pc?.addTrack(track, localStream));
-          detachAudio = options.webrtc.attachRemoteAudio(pc);
-        }
-        channel = pc.createDataChannel(REALTIME_DATA_CHANNEL);
-        wire(pc, channel, handlers);
-        const opened = waitForOpen(channel);
-        await negotiate(pc, clientSecret, doFetch, options.callsUrl ?? OPENAI_REALTIME_CALLS_URL);
-        await opened;
-        if (textMode) {
-          channel.send(JSON.stringify({ type: 'session.update', session: { type: 'realtime', output_modalities: ['text'] } }));
-        }
+        localStream.getAudioTracks().forEach((track) => pc?.addTrack(track, localStream));
+        detachAudio = options.webrtc.attachRemoteAudio(pc);
+        channel = pc.createDataChannel(LIVE_DATA_CHANNEL);
+        wire(pc, channel, handlers, ready.resolve);
+        await negotiate(pc, options);
+        await ready.promise;
       } catch (error) {
+        ready.promise.catch(() => undefined);
         teardown();
         throw error;
       }
     },
-    send(event: RealtimeClientEvent) {
-      if (channel?.readyState === 'open') channel.send(JSON.stringify(event));
-    },
+    send,
     setMuted(muted) {
       stream?.getAudioTracks().forEach((track) => {
         track.enabled = !muted;
       });
+      send({ type: muted ? 'session.input_audio.mute' : 'session.input_audio.unmute', event_id: nextEventId() });
     },
-    disconnect: teardown,
+    async disconnect() {
+      if (closed) return;
+      if (channel?.readyState === 'open') {
+        closing = waiter(options.closeTimeoutMs ?? CLOSE_TIMEOUT_MS, 'session.closed não chegou');
+        closed = true; // a partir daqui, fechar o canal não é erro
+        send({ type: 'session.close', event_id: nextEventId() });
+        await closing.promise.catch(() => undefined);
+        closing = null;
+      }
+      teardown();
+    },
   };
 }

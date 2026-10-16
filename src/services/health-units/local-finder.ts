@@ -59,10 +59,10 @@ function toMatch(unit: HealthUnit, origin: Coordinates | null): UnitMatch {
  * a unidade mais perto não serve se não oferece o que a pessoa precisa.
  */
 export function searchUnits(units: HealthUnit[], query: UnitSearchQuery): UnitSearchResult {
-  const accepted = EQUIVALENT_SERVICES[query.servico] ?? [query.servico];
+  const accepted = new Set(EQUIVALENT_SERVICES[query.servico] ?? [query.servico]);
   const origin = query.coordinates ?? null;
   const matches = units
-    .filter((unit) => unit.services.some((service) => accepted.includes(service)))
+    .filter((unit) => unit.services.some((service) => accepted.has(service)))
     .map((unit) => ({ match: toMatch(unit, origin), exact: unit.services.includes(query.servico) }))
     .sort((a, b) => {
       if (a.exact !== b.exact) return a.exact ? -1 : 1;

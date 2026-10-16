@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useReducer, useRef, useState, type RefObject } from 'react';
 
 import { createVoiceDependencies, type AssistantChannel, type VoiceDependencies, type VoiceMode } from './config';
+import { createEventIdFactory, createToolBatcher, readDelegationEvent, type ToolBatcher } from './delegation';
 import { initialVoiceState, voiceReducer, type VoiceAction, type VoiceState } from './reducer';
-import { handleToolCall, type ToolDependencies } from './tool-call';
-import type { FunctionCallArgumentsDoneEvent, RealtimeClientEvent, VoiceTransport } from './types';
+import { executeToolCall, type ToolDependencies } from './tool-call';
+import type { FunctionCallItem, LiveServerEvent, VoiceTransport } from './types';
 
 /**
  * Núcleo compartilhado por `useVoiceAssistant` e `useTextAssistant`: mesma
  * máquina de estados, mesma transcrição e mesmas ferramentas. Só muda o canal.
  */
+
+/** Silêncio após o último delta de transcrição que encerra o turno (o GPT-Live não sinaliza). */
+export const TURN_QUIET_MS = 1200;
 
 export interface AssistantSessionOptions extends Partial<ToolDependencies> {
   /** Transporte injetado (ex.: mock nos testes). Se omitido, resolve pelo ambiente. */
@@ -25,15 +29,12 @@ export interface AssistantSession {
 }
 
 function resolveDependencies(channel: AssistantChannel, options: AssistantSessionOptions): VoiceDependencies {
-  const { transport, analyzer, unitFinder, getCoordinates } = options;
-  if (transport && analyzer && unitFinder) {
-    return { mode: 'live', transport, analyzer, unitFinder, getCoordinates };
-  }
+  const { transport, unitFinder, getCoordinates } = options;
+  if (transport && unitFinder) return { mode: 'live', transport, unitFinder, getCoordinates };
   const defaults = createVoiceDependencies(channel);
   return {
     mode: transport ? 'live' : defaults.mode,
     transport: transport ?? defaults.transport,
-    analyzer: analyzer ?? defaults.analyzer,
     unitFinder: unitFinder ?? defaults.unitFinder,
     getCoordinates: getCoordinates ?? defaults.getCoordinates,
   };
@@ -43,25 +44,8 @@ function errorMessage(error: unknown): string {
   return error instanceof Error && error.message ? error.message : 'Não foi possível conectar ao assistente';
 }
 
-function textEvents(text: string, channel: AssistantChannel): RealtimeClientEvent[] {
-  return [
-    { type: 'conversation.item.create', item: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } },
-    channel === 'text' ? { type: 'response.create', response: { output_modalities: ['text'] } } : { type: 'response.create' },
-  ];
-}
-
-/** Executa a ferramenta e devolve o resultado ao GPT Live, se a sessão ainda for a mesma. */
-async function replyToToolCall(
-  event: FunctionCallArgumentsDoneEvent,
-  deps: VoiceDependencies,
-  channel: AssistantChannel,
-  dispatch: (action: VoiceAction) => void,
-  isCurrent: () => boolean,
-) {
-  const result = await handleToolCall(event, deps, channel === 'text' ? { modalities: ['text'] } : {});
-  if (!isCurrent()) return;
-  if (result.outcome) dispatch({ type: 'tool_result', callId: event.call_id, outcome: result.outcome });
-  result.events.forEach((clientEvent) => deps.transport.send(clientEvent));
+interface SessionRuntime {
+  dispose: () => void;
 }
 
 interface ConnectContext {
@@ -71,31 +55,59 @@ interface ConnectContext {
   gen: number;
   generation: RefObject<number>;
   connection: RefObject<Promise<void> | null>;
+  runtime: RefObject<SessionRuntime | null>;
 }
 
-/** Conecta o transporte e liga eventos -> reducer e chamadas de função -> ferramentas. */
-async function connectSession({ deps, channel, dispatch, gen, generation, connection }: ConnectContext) {
-  const isCurrent = () => gen === generation.current;
+/** Executa a ferramenta pedida pelo backend e devolve o resultado pelo batcher. */
+function runTool(call: FunctionCallItem, ctx: ConnectContext, batcher: ToolBatcher, isCurrent: () => boolean) {
+  batcher.callStarted(call.call_id);
+  void executeToolCall(call, ctx.deps).then(({ output, outcome }) => {
+    if (!isCurrent()) return;
+    if (outcome) ctx.dispatch({ type: 'tool_result', callId: call.call_id, outcome });
+    batcher.submit(call.call_id, output);
+  });
+}
+
+/** Liga eventos -> reducer, delegação -> ferramentas e silêncio -> fim de turno. */
+function createEventHandler(ctx: ConnectContext, isCurrent: () => boolean) {
+  const batcher = createToolBatcher((event) => ctx.deps.transport.send(event), createEventIdFactory());
+  let quietTimer: ReturnType<typeof setTimeout> | null = null;
+  const clearQuiet = () => quietTimer !== null && clearTimeout(quietTimer);
+  ctx.runtime.current = { dispose: () => (clearQuiet(), batcher.reset()) };
+
+  return (event: LiveServerEvent) => {
+    if (!isCurrent()) return;
+    ctx.dispatch({ type: 'server_event', event });
+    if (ctx.channel === 'voice' && event.type.endsWith('_transcript.delta')) {
+      clearQuiet();
+      quietTimer = setTimeout(() => {
+        if (isCurrent()) ctx.dispatch({ type: 'server_event', event: { type: 'app.turn_completed' } });
+      }, TURN_QUIET_MS);
+    }
+    const signal = readDelegationEvent(event);
+    if (signal?.kind === 'response_started') batcher.responseStarted();
+    else if (signal?.kind === 'response_finished') batcher.responseFinished();
+    else if (signal?.kind === 'function_call') runTool(signal.call, ctx, batcher, isCurrent);
+  };
+}
+
+async function connectSession(ctx: ConnectContext) {
+  const isCurrent = () => ctx.gen === ctx.generation.current;
   const fail = (message: string) => {
     if (!isCurrent()) return;
-    generation.current += 1;
-    connection.current = null;
-    deps.transport.disconnect();
-    dispatch({ type: 'transport_error', message });
+    ctx.generation.current += 1;
+    ctx.connection.current = null;
+    ctx.runtime.current?.dispose();
+    void ctx.deps.transport.disconnect();
+    ctx.dispatch({ type: 'transport_error', message });
   };
   try {
-    await deps.transport.connect({
-      onEvent: (event) => {
-        if (!isCurrent()) return;
-        dispatch({ type: 'server_event', event });
-        if (event.type === 'response.function_call_arguments.done') {
-          void replyToToolCall(event, deps, channel, dispatch, isCurrent);
-        }
-      },
+    await ctx.deps.transport.connect({
+      onEvent: createEventHandler(ctx, isCurrent),
       onError: (error) => fail(errorMessage(error)),
       onClose: () => fail('A conexão com o assistente foi encerrada'),
     });
-    if (isCurrent()) dispatch({ type: 'connected' });
+    if (isCurrent()) ctx.dispatch({ type: 'connected' });
   } catch (error) {
     fail(errorMessage(error));
     throw error;
@@ -109,13 +121,14 @@ export function useAssistantSession(channel: AssistantChannel, options: Assistan
   // Geração da sessão: eventos de sessões antigas (após stop) são descartados.
   const generation = useRef(0);
   const connection = useRef<Promise<void> | null>(null);
-  const messageCounter = useRef(0);
+  const runtime = useRef<SessionRuntime | null>(null);
+  const [nextEventId] = useState(() => createEventIdFactory('evt_user'));
 
   const start = useCallback(async () => {
     if (!connection.current) {
       const gen = ++generation.current;
       dispatch({ type: 'start' });
-      connection.current = connectSession({ deps, channel, dispatch, gen, generation, connection });
+      connection.current = connectSession({ deps, channel, dispatch, gen, generation, connection, runtime });
     }
     await connection.current.catch(() => undefined);
   }, [channel, deps]);
@@ -123,7 +136,8 @@ export function useAssistantSession(channel: AssistantChannel, options: Assistan
   const stop = useCallback(() => {
     generation.current += 1;
     connection.current = null;
-    transport.disconnect();
+    runtime.current?.dispose();
+    void transport.disconnect();
     dispatch({ type: 'stop' });
   }, [transport]);
 
@@ -142,13 +156,19 @@ export function useAssistantSession(channel: AssistantChannel, options: Assistan
       if (!trimmed) return;
       await start();
       if (!connection.current) return; // a conexão falhou
-      dispatch({ type: 'user_text', id: `local_${++messageCounter.current}`, text: trimmed });
-      textEvents(trimmed, channel).forEach((event) => transport.send(event));
+      dispatch({ type: 'user_text', text: trimmed });
+      transport.send({ type: 'app.user_text', event_id: nextEventId(), text: trimmed });
     },
-    [channel, start, transport],
+    [nextEventId, start, transport],
   );
 
-  useEffect(() => () => transport.disconnect(), [transport]);
+  useEffect(
+    () => () => {
+      runtime.current?.dispose();
+      void transport.disconnect();
+    },
+    [transport],
+  );
 
   return { session, mode: deps.mode, start, stop, mute, sendText };
 }

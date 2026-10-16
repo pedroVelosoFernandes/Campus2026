@@ -1,9 +1,8 @@
 import type { WebRTCModule } from '@/features/voice/webrtc/types';
 import {
-  fetchClientSecret,
-  OPENAI_REALTIME_CALLS_URL,
-  REALTIME_DATA_CHANNEL,
   createWebRTCTransport,
+  LIVE_DATA_CHANNEL,
+  requestLiveSession,
 } from '@/features/voice/webrtc/webrtc-transport';
 
 jest.mock('react-native-webrtc', () => ({ RTCPeerConnection: jest.fn(), mediaDevices: {} }));
@@ -23,6 +22,9 @@ function createFakeWebRTC() {
       if (type === 'open') channel.readyState = 'open';
       listeners[type]?.forEach((listener) => listener(event));
     },
+    server(event: object) {
+      channel.emit('message', { data: JSON.stringify(event) });
+    },
   };
   const track = { enabled: true, stop: jest.fn() };
   const stream = { getAudioTracks: () => [track], getTracks: () => [track] };
@@ -30,11 +32,14 @@ function createFakeWebRTC() {
     connectionState: 'new',
     createDataChannel: jest.fn(() => channel),
     addTrack: jest.fn(),
-    addTransceiver: jest.fn(),
     createOffer: jest.fn(async () => ({ type: 'offer', sdp: 'v=0 offer' })),
     setLocalDescription: jest.fn(async () => {}),
     setRemoteDescription: jest.fn(async () => {
-      setTimeout(() => channel.emit('open'), 0);
+      // O GPT-Live abre o canal e anuncia a sessão.
+      setTimeout(() => {
+        channel.emit('open');
+        channel.server({ type: 'session.started', session: { id: 'sess_1' } });
+      }, 0);
     }),
     addEventListener: jest.fn(),
     close: jest.fn(),
@@ -48,87 +53,97 @@ function createFakeWebRTC() {
 }
 
 const handlers = () => ({ onEvent: jest.fn(), onError: jest.fn(), onClose: jest.fn() });
+const sentTypes = (channel: { send: jest.Mock }) => channel.send.mock.calls.map(([data]) => JSON.parse(data).type);
 
-describe('createWebRTCTransport', () => {
-  it('faz o handshake SDP com o client secret efêmero e abre o canal oai-events', async () => {
+describe('createWebRTCTransport (GPT-Live)', () => {
+  it('envia a oferta ao nosso servidor, aplica a resposta e espera session.started', async () => {
     const fake = createFakeWebRTC();
-    const fetchImpl = jest.fn().mockResolvedValue({ ok: true, status: 201, text: async () => 'v=0 answer' });
-    const transport = createWebRTCTransport({
-      getClientSecret: async () => 'ek_abc',
-      webrtc: fake.webrtc,
-      fetchImpl,
-    });
+    const requestSession = jest.fn().mockResolvedValue({ sessionId: 'sess_1', sdp: 'v=0 answer' });
+    const transport = createWebRTCTransport({ requestSession, webrtc: fake.webrtc });
     const h = handlers();
 
     await transport.connect(h);
 
-    expect(fake.pc.createDataChannel).toHaveBeenCalledWith(REALTIME_DATA_CHANNEL);
-    expect(fake.pc.addTrack).toHaveBeenCalled();
-    const [url, init] = fetchImpl.mock.calls[0];
-    expect(url).toBe(OPENAI_REALTIME_CALLS_URL);
-    expect(init).toMatchObject({
-      method: 'POST',
-      body: 'v=0 offer',
-      headers: { Authorization: 'Bearer ek_abc', 'Content-Type': 'application/sdp' },
-    });
+    expect(fake.pc.createDataChannel).toHaveBeenCalledWith(LIVE_DATA_CHANNEL);
+    expect(requestSession).toHaveBeenCalledWith('v=0 offer');
     expect(fake.pc.setRemoteDescription).toHaveBeenCalledWith({ type: 'answer', sdp: 'v=0 answer' });
+    expect(h.onEvent).toHaveBeenCalledWith({ type: 'session.started', session: { id: 'sess_1' } });
+    expect(sentTypes(fake.channel)).not.toContain('session.start');
 
-    fake.channel.emit('message', { data: JSON.stringify({ type: 'session.created' }) });
     fake.channel.emit('message', { data: 'lixo' });
     expect(h.onEvent).toHaveBeenCalledTimes(1);
-    expect(h.onEvent).toHaveBeenCalledWith({ type: 'session.created' });
 
-    transport.send({ type: 'response.create' });
-    expect(fake.channel.send).toHaveBeenCalledWith('{"type":"response.create"}');
+    transport.send({ type: 'response.create', event_id: 'e1' });
+    expect(fake.channel.send).toHaveBeenLastCalledWith('{"type":"response.create","event_id":"e1"}');
 
     transport.setMuted(true);
     expect(fake.track.enabled).toBe(false);
+    expect(sentTypes(fake.channel).at(-1)).toBe('session.input_audio.mute');
+  });
 
-    transport.disconnect();
+  it('encerra com session.close e espera session.closed antes de liberar recursos', async () => {
+    const fake = createFakeWebRTC();
+    const transport = createWebRTCTransport({
+      requestSession: async () => ({ sessionId: 's', sdp: 'v=0 answer' }),
+      webrtc: fake.webrtc,
+    });
+    const h = handlers();
+    await transport.connect(h);
+
+    const closing = transport.disconnect();
+    expect(sentTypes(fake.channel).at(-1)).toBe('session.close');
+    expect(fake.pc.close).not.toHaveBeenCalled();
+    fake.channel.server({ type: 'session.closed', reason: 'close_requested' });
+    await closing;
+    expect(fake.pc.close).toHaveBeenCalled();
     expect(fake.track.stop).toHaveBeenCalled();
+    fake.channel.emit('close');
+    expect(h.onClose).not.toHaveBeenCalled();
+  });
+
+  it('libera recursos se session.closed não chegar a tempo', async () => {
+    const fake = createFakeWebRTC();
+    const transport = createWebRTCTransport({
+      requestSession: async () => ({ sessionId: 's', sdp: 'v=0 answer' }),
+      webrtc: fake.webrtc,
+      closeTimeoutMs: 10,
+    });
+    await transport.connect(handlers());
+    await transport.disconnect();
     expect(fake.pc.close).toHaveBeenCalled();
   });
 
-  it('libera recursos e propaga o erro quando a negociação falha', async () => {
+  it('libera recursos e propaga o erro quando a criação da sessão falha', async () => {
     const fake = createFakeWebRTC();
-    const fetchImpl = jest.fn().mockResolvedValue({ ok: false, status: 401, text: async () => '' });
-    const transport = createWebRTCTransport({ getClientSecret: async () => 'ek', webrtc: fake.webrtc, fetchImpl });
+    const transport = createWebRTCTransport({
+      requestSession: async () => Promise.reject(new Error('401')),
+      webrtc: fake.webrtc,
+    });
     await expect(transport.connect(handlers())).rejects.toThrow('401');
     expect(fake.pc.close).toHaveBeenCalled();
     expect(fake.track.stop).toHaveBeenCalled();
   });
 });
 
-describe('fetchClientSecret', () => {
-  it('lê o clientSecret da rota do nosso servidor', async () => {
-    const fetchImpl = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ clientSecret: 'ek_1' }) });
-    await expect(fetchClientSecret('https://api.exemplo/', fetchImpl)).resolves.toBe('ek_1');
-    expect(fetchImpl).toHaveBeenCalledWith('https://api.exemplo/api/realtime-session', { method: 'POST' });
+describe('requestLiveSession', () => {
+  it('posta a oferta SDP na rota do nosso servidor (sem chave no app)', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ sessionId: 's1', sdp: 'v=0 a' }) });
+    await expect(requestLiveSession('https://api.exemplo/', 'v=0 o', fetchImpl)).resolves.toEqual({
+      sessionId: 's1',
+      sdp: 'v=0 a',
+    });
+    expect(fetchImpl).toHaveBeenCalledWith('https://api.exemplo/api/live-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sdp' },
+      body: 'v=0 o',
+    });
   });
 
-  it('erro quando o servidor falha', async () => {
-    const fetchImpl = jest.fn().mockResolvedValue({ ok: false, status: 500 });
-    await expect(fetchClientSecret('https://api.exemplo', fetchImpl)).rejects.toThrow('500');
-  });
-});
-
-describe('createWebRTCTransport no modo texto', () => {
-  it('não pede microfone, recebe áudio só como recvonly e troca a sessão para texto', async () => {
-    const fake = createFakeWebRTC();
-    const getUserMedia = jest.spyOn(fake.webrtc, 'getUserMedia');
-    const fetchImpl = jest.fn().mockResolvedValue({ ok: true, status: 201, text: async () => 'v=0 answer' });
-    const transport = createWebRTCTransport({
-      getClientSecret: async () => 'ek',
-      webrtc: fake.webrtc,
-      fetchImpl,
-      mode: 'text',
-    });
-    await transport.connect(handlers());
-    expect(getUserMedia).not.toHaveBeenCalled();
-    expect(fake.pc.addTransceiver).toHaveBeenCalledWith('audio', { direction: 'recvonly' });
-    expect(JSON.parse(fake.channel.send.mock.calls[0][0])).toEqual({
-      type: 'session.update',
-      session: { type: 'realtime', output_modalities: ['text'] },
-    });
+  it('erro quando o servidor falha ou responde algo inválido', async () => {
+    await expect(requestLiveSession('x', 'v=0', jest.fn().mockResolvedValue({ ok: false, status: 429 }))).rejects.toThrow(
+      '429',
+    );
+    const bad = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    await expect(requestLiveSession('x', 'v=0', bad)).rejects.toThrow('inválida');
   });
 });

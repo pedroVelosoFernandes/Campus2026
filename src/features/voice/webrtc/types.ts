@@ -25,8 +25,6 @@ export interface PeerConnectionLike {
   readonly connectionState: string;
   createDataChannel(label: string): DataChannelLike;
   addTrack(track: AudioTrackLike, stream: MediaStreamLike): unknown;
-  /** Usado no modo texto: recebe áudio sem pedir o microfone. */
-  addTransceiver(kind: 'audio', init: { direction: 'recvonly' }): unknown;
   createOffer(): Promise<{ sdp?: string; type?: string }>;
   setLocalDescription(description: { sdp?: string; type?: string }): Promise<void>;
   setRemoteDescription(description: { sdp: string; type: 'answer' }): Promise<void>;

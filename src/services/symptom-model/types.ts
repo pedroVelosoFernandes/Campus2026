@@ -15,7 +15,7 @@ export type CareRecommendation = (typeof CARE_RECOMMENDATIONS)[number];
 export const SYMPTOM_INTENSITIES = ['leve', 'moderada', 'forte'] as const;
 export type SymptomIntensity = (typeof SYMPTOM_INTENSITIES)[number];
 
-/** Argumentos da ferramenta `analisar_sintomas` chamada pelo GPT Live. */
+/** Sintomas relatados, enviados ao `SymptomAnalyzer` (rota /api/analyze-symptoms). */
 export interface SymptomInput {
   sintomas: string[];
   duracao?: string;

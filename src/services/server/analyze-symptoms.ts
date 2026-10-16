@@ -5,15 +5,22 @@ import {
   type SymptomAnalyzer,
 } from '@/services/symptom-model';
 
-import type { ServerEnv } from './realtime-session';
+import { missingKeyResponse, type ServerEnv } from './env';
+import type { RequestGuard } from './request-guard';
 
 /**
  * Handler da rota `POST /api/analyze-symptoms`. Valida a entrada, chama o
  * modelo de sintomas (hoje o GPT-Sol) e devolve um `SymptomResult` validado.
+ *
+ * No fluxo atual (GPT-Live + delegação Responses) o modelo de sintomas é o
+ * próprio backend de delegação; esta rota é o caminho para a delegação pelo
+ * cliente (`delegation.type: "client"`) quando o modelo próprio, que não fala
+ * a Responses API, existir. Ver docs/arquitetura-voz.md.
  */
 
 export interface AnalyzeSymptomsDeps {
   fetchImpl?: FetchLike;
+  guard?: RequestGuard;
   /** Permite injetar outro modelo (ex.: o modelo especializado, quando existir). */
   createAnalyzer?: (env: Required<Pick<ServerEnv, 'OPENAI_API_KEY'>> & ServerEnv) => SymptomAnalyzer;
 }
@@ -23,9 +30,11 @@ export async function handleAnalyzeSymptoms(
   env: ServerEnv,
   deps: AnalyzeSymptomsDeps = {},
 ): Promise<Response> {
+  const blocked = deps.guard?.(request);
+  if (blocked) return blocked;
   const apiKey = env.OPENAI_API_KEY;
   if (!apiKey) {
-    return Response.json({ error: 'OPENAI_API_KEY não configurada no servidor' }, { status: 500 });
+    return missingKeyResponse();
   }
   let body: unknown;
   try {

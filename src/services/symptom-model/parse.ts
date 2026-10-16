@@ -64,7 +64,7 @@ function parseSymptomList(value: unknown): ParseResult<string[]> {
   return { ok: true, value: items };
 }
 
-/** Valida os argumentos recebidos da ferramenta `analisar_sintomas`. */
+/** Valida a entrada de `/api/analyze-symptoms` (caminho de delegação pelo cliente). */
 export function parseSymptomInput(raw: unknown): ParseResult<SymptomInput> {
   if (!isRecord(raw)) return { ok: false, error: 'corpo deve ser um objeto' };
   const sintomas = parseSymptomList(raw.sintomas);

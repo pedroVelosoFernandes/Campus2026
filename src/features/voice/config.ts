@@ -1,20 +1,15 @@
 import { MOCK_HEALTH_UNITS } from '@/mocks/health-units';
-import {
-  createMockSymptomAnalyzer,
-  createMockUnitFinder,
-  createMockVoiceTransport,
-  getMockCoordinates,
-} from '@/mocks/voice-conversation';
+import { createMockUnitFinder, createMockVoiceTransport, getMockCoordinates } from '@/mocks/voice-conversation';
 import { createLocalUnitFinder } from '@/services/health-units/local-finder';
-import { createHttpSymptomAnalyzer } from '@/services/symptom-model/http-analyzer';
 
+import { createTextTransport } from './text/text-transport';
 import type { ToolDependencies } from './tool-call';
 import type { VoiceTransport } from './types';
 import { platformWebRTC } from './webrtc/platform';
-import { createWebRTCTransport, fetchClientSecret } from './webrtc/webrtc-transport';
+import { createWebRTCTransport, requestLiveSession } from './webrtc/webrtc-transport';
 
 export type VoiceMode = 'live' | 'mock';
-/** Canal da conversa: voz (microfone + fala) ou texto (chat). */
+/** Canal da conversa: voz (GPT-Live) ou texto (rota /api/assistant-text). */
 export type AssistantChannel = 'voice' | 'text';
 
 export interface VoiceEnv {
@@ -51,20 +46,14 @@ export function createVoiceDependencies(
     return {
       mode: 'mock',
       transport: createMockVoiceTransport({ mode: channel }),
-      analyzer: createMockSymptomAnalyzer(),
       unitFinder: createMockUnitFinder(),
       getCoordinates: getMockCoordinates,
     };
   }
-  return {
-    mode: 'live',
-    transport: createWebRTCTransport({
-      getClientSecret: () => fetchClientSecret(apiUrl),
-      webrtc: platformWebRTC,
-      mode: channel === 'text' ? 'text' : 'audio',
-    }),
-    analyzer: createHttpSymptomAnalyzer(apiUrl),
-    // Ainda não há base oficial de unidades integrada: usa os dados de exemplo.
-    unitFinder: createLocalUnitFinder(MOCK_HEALTH_UNITS),
-  };
+  const transport =
+    channel === 'text'
+      ? createTextTransport({ apiUrl })
+      : createWebRTCTransport({ requestSession: (sdp) => requestLiveSession(apiUrl, sdp), webrtc: platformWebRTC });
+  // Ainda não há base oficial de unidades integrada: usa os dados de exemplo.
+  return { mode: 'live', transport, unitFinder: createLocalUnitFinder(MOCK_HEALTH_UNITS) };
 }

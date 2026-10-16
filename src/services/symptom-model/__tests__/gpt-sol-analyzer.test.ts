@@ -37,7 +37,7 @@ describe('extractOutputText', () => {
 });
 
 describe('createGptSolAnalyzer', () => {
-  it('chama a Responses API com schema estrito e o modelo padrão gpt-sol', async () => {
+  it('chama a Responses API com schema estrito e o modelo padrão gpt-6-sol', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(jsonResponse(responsesPayload(JSON.stringify(modelOutput))));
     const analyzer = createGptSolAnalyzer({ apiKey: 'sk-test', fetchImpl });
 

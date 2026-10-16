@@ -13,7 +13,7 @@ import type { FetchLike, SymptomAnalyzer, SymptomInput, SymptomResult } from './
  * parâmetro e nunca a lê do ambiente do app.
  */
 
-export const DEFAULT_SYMPTOM_MODEL = 'gpt-sol';
+export const DEFAULT_SYMPTOM_MODEL = 'gpt-6-sol';
 export const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 
 export interface GptSolAnalyzerOptions {

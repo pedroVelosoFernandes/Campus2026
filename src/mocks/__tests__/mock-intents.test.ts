@@ -7,7 +7,7 @@ describe('routeMockIntent (os 5 casos da conversa simulada)', () => {
     ['Quero fazer uma consulta sem sair de casa', UNITS_TOOL_NAME, { servico: 'teleconsulta' }],
     ['Preciso marcar uma consulta de rotina', UNITS_TOOL_NAME, { servico: 'consulta_rotina' }],
     ['Qual o posto mais perto?', UNITS_TOOL_NAME, { servico: 'ubs' }],
-    ['Tô com quentura e tosse faz 2 dias', SYMPTOM_TOOL_NAME, { sintomas: ['febre', 'tosse'], duracao: '2 dias' }],
+    ['Tô com quentura e tosse faz 2 dias', SYMPTOM_TOOL_NAME, { urgency: 'pouco_urgente', recommendedCare: 'ubs' }],
   ])('"%s" -> %s', (text, name, args) => {
     expect(routeMockIntent(text)).toMatchObject({ kind: 'tool', name, args });
   });

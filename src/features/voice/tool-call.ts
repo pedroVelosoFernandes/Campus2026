@@ -1,45 +1,27 @@
 import { OFFICIAL_CHANNELS_NOTICE, parseUnitSearchInput } from '@/services/health-units/local-finder';
 import type { Coordinates, HealthUnitFinder, UnitSearchResult } from '@/services/health-units/types';
-import { createFallbackResult, parseSymptomInput } from '@/services/symptom-model/parse';
-import type { SymptomAnalyzer, SymptomResult } from '@/services/symptom-model/types';
+import { parseSymptomResult } from '@/services/symptom-model/parse';
 
 import { SYMPTOM_TOOL_NAME, UNITS_TOOL_NAME } from './tools';
-import type { FunctionCallArgumentsDoneEvent, OutputModality, RealtimeClientEvent, ToolResult } from './types';
+import type { FunctionCallItem, ToolResult } from './types';
 
 /**
- * Trata uma chamada de função do GPT Live: executa a ferramenta e devolve os
- * eventos a enviar de volta (`function_call_output` + `response.create`).
- * Nunca lança: em qualquer falha devolve um resultado seguro.
- * Docs: https://developers.openai.com/api/docs/guides/realtime-conversations
+ * Executa uma ferramenta pedida pelo backend de delegação e devolve o texto do
+ * `function_call_output`. Nunca lança: em qualquer falha devolve um resultado
+ * seguro (procure atendimento / confirme pelos canais oficiais).
  */
 
 export interface ToolDependencies {
-  analyzer: SymptomAnalyzer;
   unitFinder: HealthUnitFinder;
   /** Localização do aparelho, se a pessoa permitiu. */
   getCoordinates?: () => Promise<Coordinates | null>;
 }
 
-export interface ToolCallOptions {
-  signal?: AbortSignal;
-  /** Modalidade da resposta seguinte (texto no modo chat). Omitido = padrão da sessão. */
-  modalities?: OutputModality[];
-}
-
-export interface ToolCallOutcome {
-  events: RealtimeClientEvent[];
+export interface ToolExecution {
+  /** JSON enviado de volta como `function_call_output.output`. */
+  output: string;
   /** Resultado validado; `null` quando a função chamada é desconhecida. */
   outcome: ToolResult | null;
-}
-
-function outputEvents(callId: string, output: unknown, modalities?: OutputModality[]): RealtimeClientEvent[] {
-  return [
-    {
-      type: 'conversation.item.create',
-      item: { type: 'function_call_output', call_id: callId, output: JSON.stringify(output) },
-    },
-    modalities ? { type: 'response.create', response: { output_modalities: modalities } } : { type: 'response.create' },
-  ];
 }
 
 function parseArguments(raw: string): unknown {
@@ -47,16 +29,6 @@ function parseArguments(raw: string): unknown {
     return JSON.parse(raw);
   } catch {
     return null;
-  }
-}
-
-async function runSymptoms(args: unknown, deps: ToolDependencies, signal?: AbortSignal): Promise<SymptomResult> {
-  const input = parseSymptomInput(args);
-  if (!input.ok) return createFallbackResult();
-  try {
-    return await deps.analyzer.analyze(input.value, signal ? { signal } : {});
-  } catch {
-    return createFallbackResult();
   }
 }
 
@@ -80,20 +52,19 @@ async function runUnits(args: unknown, deps: ToolDependencies): Promise<UnitSear
   }
 }
 
-export async function handleToolCall(
-  event: FunctionCallArgumentsDoneEvent,
+export async function executeToolCall(
+  call: Pick<FunctionCallItem, 'name' | 'arguments'>,
   deps: ToolDependencies,
-  options: ToolCallOptions = {},
-): Promise<ToolCallOutcome> {
-  const args = parseArguments(event.arguments);
+): Promise<ToolExecution> {
+  const args = parseArguments(call.arguments);
   let outcome: ToolResult;
-  if (event.name === SYMPTOM_TOOL_NAME) {
-    outcome = { tool: SYMPTOM_TOOL_NAME, result: await runSymptoms(args, deps, options.signal) };
-  } else if (event.name === UNITS_TOOL_NAME) {
+  if (call.name === SYMPTOM_TOOL_NAME) {
+    // A avaliação vem do modelo de sintomas; o app valida e aplica as regras de segurança.
+    outcome = { tool: SYMPTOM_TOOL_NAME, result: parseSymptomResult(args) };
+  } else if (call.name === UNITS_TOOL_NAME) {
     outcome = { tool: UNITS_TOOL_NAME, result: await runUnits(args, deps) };
   } else {
-    const error = { error: `Função desconhecida: ${event.name}` };
-    return { events: outputEvents(event.call_id, error, options.modalities), outcome: null };
+    return { output: JSON.stringify({ error: `Função desconhecida: ${call.name}` }), outcome: null };
   }
-  return { events: outputEvents(event.call_id, outcome.result, options.modalities), outcome };
+  return { output: JSON.stringify(outcome.result), outcome };
 }
