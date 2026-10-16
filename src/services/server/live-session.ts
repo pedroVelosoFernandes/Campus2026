@@ -32,7 +32,7 @@ export async function handleLiveSession(
   env: ServerEnv,
   deps: { fetchImpl?: FetchLike; guard?: RequestGuard } = {},
 ): Promise<Response> {
-  const blocked = deps.guard?.(request);
+  const blocked = await deps.guard?.(request);
   if (blocked) return blocked;
   if (!env.OPENAI_API_KEY) return missingKeyResponse();
   const sdp = await readOffer(request);

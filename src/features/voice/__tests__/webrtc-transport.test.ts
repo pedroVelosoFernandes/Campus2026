@@ -44,12 +44,14 @@ function createFakeWebRTC() {
     addEventListener: jest.fn(),
     close: jest.fn(),
   };
+  const audioSession = { start: jest.fn(), stop: jest.fn() };
   const webrtc: WebRTCModule = {
     createPeerConnection: () => pc,
     getUserMedia: async () => stream,
     attachRemoteAudio: () => () => {},
+    audioSession,
   };
-  return { webrtc, pc, channel, track };
+  return { webrtc, pc, channel, track, audioSession };
 }
 
 const handlers = () => ({ onEvent: jest.fn(), onError: jest.fn(), onClose: jest.fn() });
@@ -122,6 +124,39 @@ describe('createWebRTCTransport (GPT-Live)', () => {
     await expect(transport.connect(handlers())).rejects.toThrow('401');
     expect(fake.pc.close).toHaveBeenCalled();
     expect(fake.track.stop).toHaveBeenCalled();
+  });
+});
+
+describe('viva-voz (sessão de áudio)', () => {
+  it('liga ao abrir o microfone e desliga uma vez ao encerrar', async () => {
+    const fake = createFakeWebRTC();
+    const transport = createWebRTCTransport({
+      requestSession: async () => ({ sessionId: 's', sdp: 'v=0 answer' }),
+      webrtc: fake.webrtc,
+      closeTimeoutMs: 10,
+    });
+    await transport.connect(handlers());
+    expect(fake.audioSession.start).toHaveBeenCalledTimes(1);
+    await transport.disconnect();
+    await transport.disconnect();
+    expect(fake.audioSession.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('desliga quando a conexão falha e não derruba a chamada se o módulo nativo falhar', async () => {
+    const fake = createFakeWebRTC();
+    const failing = createWebRTCTransport({ requestSession: async () => Promise.reject(new Error('500')), webrtc: fake.webrtc });
+    await expect(failing.connect(handlers())).rejects.toThrow('500');
+    expect(fake.audioSession.stop).toHaveBeenCalledTimes(1);
+
+    const broken = createFakeWebRTC();
+    broken.audioSession.start.mockImplementation(() => {
+      throw new Error('InCallManager ausente');
+    });
+    const transport = createWebRTCTransport({
+      requestSession: async () => ({ sessionId: 's', sdp: 'v=0 answer' }),
+      webrtc: broken.webrtc,
+    });
+    await expect(transport.connect(handlers())).resolves.toBeUndefined();
   });
 });
 

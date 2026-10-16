@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import { Linking } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AssistenteScreen from '@/app/assistente';
 import { useVoiceAssistant, type VoiceAssistant } from '@/features/voice';
+import { colors } from '@/theme';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), navigate: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) },
@@ -133,5 +134,55 @@ describe('Tela Assistente', () => {
     expect(screen.queryByText('ICE failed')).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Tentar de novo' }));
     expect(assistant.start).toHaveBeenCalledTimes(2);
+  });
+
+  it('o orbe fica parado enquanto a pessoa fala e só anima com a voz do assistente', async () => {
+    mockedHook.mockReturnValue(voice({ state: 'user_speaking' }));
+    await renderScreen();
+    expect(screen.getByTestId('assistant-orb', { includeHiddenElements: true }).props.accessibilityValue).toEqual({ text: 'parado' });
+
+    mockedHook.mockReturnValue(voice({ state: 'assistant_speaking' }));
+    await screen.rerender(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <AssistenteScreen />
+      </SafeAreaProvider>,
+    );
+    expect(screen.getByText('Respondendo')).toBeTruthy();
+    expect(screen.getByTestId('assistant-orb', { includeHiddenElements: true }).props.accessibilityValue).toEqual({ text: 'animando' });
+  });
+
+  it.each(['listening', 'thinking', 'searching_units', 'idle'] as const)('em "%s" o orbe não anima', async (state) => {
+    mockedHook.mockReturnValue(voice({ state }));
+    await renderScreen();
+    expect(screen.getByTestId('assistant-orb', { includeHiddenElements: true }).props.accessibilityValue).toEqual({ text: 'parado' });
+  });
+
+  it('a fala da pessoa usa balão menta e a fala em captura fica destacada', async () => {
+    mockedHook.mockReturnValue(
+      voice({
+        state: 'user_speaking',
+        transcript: [
+          { id: 'a0', role: 'assistant', text: 'Do que você precisa?', final: true },
+          { id: 'u0', role: 'user', text: 'Tô com febre', final: true },
+          { id: 'u1', role: 'user', text: 'e dor de cabeça desde', final: false },
+        ],
+      }),
+    );
+    await renderScreen();
+
+    const bg = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style).backgroundColor;
+    expect(bg('bubble-assistant')).toBe(colors.bubbleAssistant);
+    expect(bg('bubble-user')).toBe(colors.bubbleUser);
+    expect(screen.getByTestId('bubble-user-live')).toBeTruthy();
+    expect(screen.getByLabelText('Você (falando agora): e dor de cabeça desde')).toBeTruthy();
+  });
+
+  it('quando a pessoa termina de falar, o balão deixa de ser "ao vivo"', async () => {
+    mockedHook.mockReturnValue(
+      voice({ state: 'thinking', transcript: [{ id: 'u1', role: 'user', text: 'Tô com febre', final: false }] }),
+    );
+    await renderScreen();
+    expect(screen.queryByTestId('bubble-user-live')).toBeNull();
+    expect(screen.getByTestId('bubble-user')).toBeTruthy();
   });
 });

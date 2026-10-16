@@ -1,6 +1,6 @@
-import { MOCK_HEALTH_UNITS } from '@/mocks/health-units';
+import { authFetch as apiFetch } from '@/features/location/auth-fetch';
+import { createOfficialUnitDeps, resolveUnitSource } from '@/features/location/unit-finder';
 import { createMockUnitFinder, createMockVoiceTransport, getMockCoordinates } from '@/mocks/voice-conversation';
-import { createLocalUnitFinder } from '@/services/health-units/local-finder';
 
 import { createTextTransport } from './text/text-transport';
 import type { ToolDependencies } from './tool-call';
@@ -15,6 +15,8 @@ export type AssistantChannel = 'voice' | 'text';
 export interface VoiceEnv {
   apiUrl?: string;
   mock?: string;
+  /** `exemplo` força as unidades fictícias mesmo com backend. */
+  unitsSource?: string;
 }
 
 export interface VoiceDependencies extends ToolDependencies {
@@ -27,6 +29,7 @@ export function readVoiceEnv(): VoiceEnv {
   return {
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     mock: process.env.EXPO_PUBLIC_VOICE_MOCK,
+    unitsSource: process.env.EXPO_PUBLIC_UNITS_SOURCE,
   };
 }
 
@@ -52,8 +55,16 @@ export function createVoiceDependencies(
   }
   const transport =
     channel === 'text'
-      ? createTextTransport({ apiUrl })
-      : createWebRTCTransport({ requestSession: (sdp) => requestLiveSession(apiUrl, sdp), webrtc: platformWebRTC });
-  // Ainda não há base oficial de unidades integrada: usa os dados de exemplo.
-  return { mode: 'live', transport, unitFinder: createLocalUnitFinder(MOCK_HEALTH_UNITS) };
+      ? createTextTransport({ apiUrl, fetchImpl: apiFetch })
+      : createWebRTCTransport({
+          requestSession: (sdp) => requestLiveSession(apiUrl, sdp, apiFetch),
+          webrtc: platformWebRTC,
+        });
+  // Unidades oficiais (CNES) pelo nosso servidor + localização real do aparelho;
+  // EXPO_PUBLIC_UNITS_SOURCE=exemplo mantém os dados fictícios.
+  const units =
+    resolveUnitSource({ apiUrl, source: env.unitsSource }) === 'oficial'
+      ? createOfficialUnitDeps(apiUrl)
+      : { unitFinder: createMockUnitFinder(), getCoordinates: getMockCoordinates };
+  return { mode: 'live', transport, ...units };
 }

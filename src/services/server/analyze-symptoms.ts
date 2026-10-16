@@ -30,7 +30,7 @@ export async function handleAnalyzeSymptoms(
   env: ServerEnv,
   deps: AnalyzeSymptomsDeps = {},
 ): Promise<Response> {
-  const blocked = deps.guard?.(request);
+  const blocked = await deps.guard?.(request);
   if (blocked) return blocked;
   const apiKey = env.OPENAI_API_KEY;
   if (!apiKey) {

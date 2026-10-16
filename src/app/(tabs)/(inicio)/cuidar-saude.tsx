@@ -1,58 +1,12 @@
-import { router, type Href } from 'expo-router';
-import { CalendarDays, FilePlus, Syringe, type LucideIcon } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MonitorUser } from '@/components/cuidar-saude/MonitorUserIcon';
 import { OptionCard } from '@/components/OptionCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { CARE_OPTIONS } from '@/features/care-options';
 import { colors, screenPadding, spacing, typography } from '@/theme';
-
-type CareOption = {
-  key: string;
-  icon: LucideIcon;
-  title: string;
-  subtitle: string;
-  open: () => void;
-};
-
-const go = (href: Href) => () => router.push(href);
-
-/** Conversas é outra aba: navigate reaproveita a pilha existente. */
-const openSymptoms = () => router.navigate('/conversas?topic=sintomas');
-
-const OPTIONS: CareOption[] = [
-  {
-    key: 'teleconsulta',
-    icon: MonitorUser,
-    title: 'Teleconsulta',
-    subtitle: 'Ver opções pelo SUS',
-    open: go('/teleconsulta'),
-  },
-  {
-    key: 'vacinacao',
-    icon: Syringe,
-    title: 'Vacinação',
-    subtitle: 'Encontre uma unidade',
-    open: go('/vacinacao'),
-  },
-  {
-    key: 'sintomas',
-    icon: FilePlus,
-    title: 'Estou com sintomas',
-    subtitle: 'Receba orientação de atendimento',
-    open: openSymptoms,
-  },
-  {
-    // Sem tela própria: o buscador de unidades mostra a UBS de referência.
-    key: 'rotina',
-    icon: CalendarDays,
-    title: 'Consulta de rotina',
-    subtitle: 'Planeje seu próximo cuidado',
-    open: go('/vacinacao?servico=ubs'),
-  },
-];
 
 const STAGGER_MS = 60;
 
@@ -83,7 +37,7 @@ export default function CuidarSaudeScreen() {
         </View>
 
         <View style={styles.options}>
-          {OPTIONS.map((option, index) => (
+          {CARE_OPTIONS.map((option, index) => (
             <Animated.View key={option.key} entering={entering(index)}>
               <OptionCard
                 icon={option.icon}

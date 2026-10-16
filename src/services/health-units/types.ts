@@ -1,7 +1,8 @@
 /**
- * Busca de unidades de saúde. Hoje os dados vêm de mocks locais
- * (`src/mocks/health-units.ts`); no futuro podem vir do CNES / dados abertos
- * do município, bastando outra implementação de `HealthUnitFinder`.
+ * Busca de unidades de saúde. Duas implementações de `HealthUnitFinder`:
+ * - dados de exemplo locais (`src/mocks/health-units.ts`), para demo e testes;
+ * - CNES (dados abertos do Ministério da Saúde), consultado pelo NOSSO servidor
+ *   na rota `/api/health-units` (ver `cnes/` e `remote-finder.ts`).
  */
 
 export const HEALTH_SERVICES = [
@@ -16,7 +17,14 @@ export const HEALTH_SERVICES = [
 ] as const;
 export type HealthService = (typeof HEALTH_SERVICES)[number];
 
-export type HealthUnitType = 'UBS' | 'UPA' | 'Hospital' | 'CAPS' | 'Farmácia Popular' | 'Serviço digital';
+export type HealthUnitType =
+  | 'UBS'
+  | 'UPA'
+  | 'Hospital'
+  | 'CAPS'
+  | 'Centro de imunização'
+  | 'Farmácia Popular'
+  | 'Serviço digital';
 
 export interface Coordinates {
   latitude: number;
@@ -43,12 +51,25 @@ export interface UnitSearchInput {
   localizacao?: string;
 }
 
+/** Município da pessoa (do GPS via geocodificação reversa ou digitado). */
+export interface PlaceHint {
+  city?: string;
+  /** Sigla da UF (ex.: "DF") ou nome do estado. */
+  uf?: string;
+  /** Código IBGE do município (6 ou 7 dígitos), quando já conhecido. */
+  ibgeCode?: string;
+}
+
 export interface UnitSearchQuery extends UnitSearchInput {
   /** Coordenadas do aparelho, quando o usuário permitiu a localização. */
   coordinates?: Coordinates | null;
+  /** Município, quando conhecido; a base oficial é consultada por município. */
+  place?: PlaceHint | null;
 }
 
 export interface UnitMatch extends Omit<HealthUnit, 'coordinates'> {
+  /** Ponto da unidade, para o mapa e o "Como chegar" (ausente/`null` se desconhecido). */
+  coordinates?: Coordinates | null;
   /** Distância em km; `null` quando não há localização ou é serviço remoto. */
   distanceKm: number | null;
 }
@@ -60,6 +81,8 @@ export interface UnitSearchResult {
   usedLocation: boolean;
   /** Limitações a serem explicadas ao usuário (dados simulados, confirmar no canal oficial). */
   notice: string;
+  /** Origem dos dados: base oficial (CNES) ou exemplos fictícios. Ausente = exemplo. */
+  dataSource?: 'cnes' | 'exemplo';
 }
 
 export interface HealthUnitFinder {

@@ -49,9 +49,9 @@ export function distanceKm(a: Coordinates, b: Coordinates): number {
 }
 
 function toMatch(unit: HealthUnit, origin: Coordinates | null): UnitMatch {
-  const { coordinates, ...rest } = unit;
+  const { coordinates } = unit;
   const distance = origin && coordinates ? Math.round(distanceKm(origin, coordinates) * 10) / 10 : null;
-  return { ...rest, distanceKm: distance };
+  return { ...unit, distanceKm: distance };
 }
 
 /**

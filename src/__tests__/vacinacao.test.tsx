@@ -3,7 +3,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Linking } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import * as ExpoLocation from 'expo-location';
+
 import VacinacaoScreen from '@/app/(tabs)/(inicio)/vacinacao';
+import { authFetch } from '@/features/location/auth-fetch';
+import { resetLocationSession } from '@/features/location/manual-place';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) },
@@ -24,7 +28,24 @@ jest.mock('react-native-maps', () => {
   return { __esModule: true, default: MapView, Marker, Polygon };
 });
 
+jest.mock('expo-location', () => ({
+  Accuracy: { Balanced: 3 },
+  getForegroundPermissionsAsync: jest.fn(),
+  requestForegroundPermissionsAsync: jest.fn(),
+  getCurrentPositionAsync: jest.fn(),
+  getLastKnownPositionAsync: jest.fn(async () => null),
+  reverseGeocodeAsync: jest.fn(async () => []),
+  geocodeAsync: jest.fn(async () => []),
+}));
+
+jest.mock('@/features/location/auth-fetch', () => ({ authFetch: jest.fn() }));
+
 const mockedParams = jest.mocked(useLocalSearchParams);
+const location = jest.mocked(ExpoLocation);
+const permission = (status: 'granted' | 'denied' | 'undetermined') =>
+  ({ status, granted: status === 'granted', canAskAgain: true, expires: 'never' }) as never;
+/** Ponto de GPS dentro do bairro de demonstração. */
+const GPS = { coords: { latitude: -15.7941, longitude: -47.8829 } } as never;
 
 const METRICS = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -40,7 +61,10 @@ const renderScreen = () =>
 describe('Tela Vacinação perto de você', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetLocationSession();
     mockedParams.mockReturnValue({});
+    // Padrão: localização negada → o app segue com o ponto aproximado do bairro.
+    location.getForegroundPermissionsAsync.mockResolvedValue(permission('denied'));
   });
 
   it('mostra os textos do design com a unidade padrão', async () => {
@@ -106,5 +130,106 @@ describe('Tela Vacinação perto de você', () => {
     await screen.findByText('UBS do seu bairro');
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
     expect(router.back).toHaveBeenCalled();
+  });
+
+  it('sem localização mostra o aviso de local aproximado', async () => {
+    await renderScreen();
+    expect(await screen.findByText('Local aproximado. Confirme pelo Disque Saúde 136 antes de ir.')).toBeTruthy();
+  });
+});
+
+describe('Localização do aparelho na tela de vacinação', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetLocationSession();
+    mockedParams.mockReturnValue({});
+  });
+
+  it('explica antes de pedir a permissão e usa o GPS depois de permitido', async () => {
+    location.getForegroundPermissionsAsync.mockResolvedValue(permission('undetermined'));
+    location.requestForegroundPermissionsAsync.mockResolvedValue(permission('granted'));
+    await renderScreen();
+
+    expect(await screen.findByText('Usar sua localização?')).toBeTruthy();
+    expect(location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+
+    location.getForegroundPermissionsAsync.mockResolvedValue(permission('granted'));
+    location.getCurrentPositionAsync.mockResolvedValue(GPS);
+    await fireEvent.press(screen.getByRole('button', { name: 'Permitir localização' }));
+
+    expect(await screen.findByText('UBS do seu bairro')).toBeTruthy();
+    expect(location.requestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
+    // Posição real: some o "Local aproximado".
+    expect(screen.getByText('Dados de exemplo. Confirme pelo Disque Saúde 136 antes de ir.')).toBeTruthy();
+    expect(screen.queryByText(/Local aproximado/)).toBeNull();
+  });
+
+  it('"Agora não" segue com o ponto aproximado, sem pedir permissão', async () => {
+    location.getForegroundPermissionsAsync.mockResolvedValue(permission('undetermined'));
+    await renderScreen();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Agora não' }));
+
+    expect(await screen.findByText('UBS do seu bairro')).toBeTruthy();
+    expect(screen.getByText(/Local aproximado/)).toBeTruthy();
+    expect(location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('Tela de vacinação com dados oficiais (CNES)', () => {
+  const fetchMock = jest.mocked(authFetch);
+  const cnesUnit = {
+    id: 'cnes-10707',
+    name: 'UBS 1 Asa Norte',
+    type: 'UBS',
+    address: 'Sqn 114 — Asa Norte',
+    coordinates: { latitude: -15.7733, longitude: -47.8926 },
+    services: ['ubs', 'consulta_rotina', 'vacinacao'],
+    hours: 'Manhã e tarde (confirme o horário)',
+    howToAccess: 'Leve documento.',
+    distanceKm: 2.4,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetLocationSession();
+    mockedParams.mockReturnValue({});
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.exemplo';
+  });
+  afterEach(() => {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  });
+
+  it('sem permissão pede a cidade e busca as unidades oficiais dela', async () => {
+    location.getForegroundPermissionsAsync.mockResolvedValue(permission('denied'));
+    location.geocodeAsync.mockResolvedValue([{ latitude: -15.79, longitude: -47.88 }] as never);
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ servico: 'vacinacao', units: [cnesUnit], usedLocation: true, notice: 'CNES', dataSource: 'cnes' }),
+    } as Response);
+    await renderScreen();
+
+    expect(await screen.findByText('Em qual cidade você está?')).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('Cidade e estado'), 'Brasília, DF');
+    await fireEvent.press(screen.getByRole('button', { name: 'Buscar unidades' }));
+
+    expect(await screen.findByText('UBS 1 Asa Norte')).toBeTruthy();
+    expect(screen.getByText('Unidade do SUS')).toBeTruthy();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.exemplo/api/health-units');
+    expect(JSON.parse(String(init?.body))).toMatchObject({ servico: 'vacinacao', place: { city: 'Brasília', uf: 'DF' } });
+  });
+
+  it('busca vazia explica a limitação e oferece o Disque Saúde', async () => {
+    location.getForegroundPermissionsAsync.mockResolvedValue(permission('granted'));
+    location.getCurrentPositionAsync.mockResolvedValue(GPS);
+    location.reverseGeocodeAsync.mockResolvedValue([{ city: 'Brasília', region: 'DF', isoCountryCode: 'BR' }] as never);
+    fetchMock.mockResolvedValue({ ok: false, status: 502 } as Response);
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    await renderScreen();
+
+    expect(await screen.findByText('Nenhuma unidade encontrada')).toBeTruthy();
+    expect(screen.getByText(/Não consegui consultar a base oficial/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ligar para o Disque Saúde 136' }));
+    expect(openURL).toHaveBeenCalledWith('tel:136');
   });
 });

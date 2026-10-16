@@ -7,19 +7,23 @@ import { POST as liveSessionPOST } from '@/app/api/live-session+api';
 import { SYMPTOM_TOOL_NAME, UNITS_TOOL_NAME } from '@/features/voice/tools';
 import { OPENAI_RESPONSES_URL } from '@/services/symptom-model';
 
+import { issueSession } from '../auth/token';
 import { OPENAI_LIVE_SESSIONS_URL } from '../live-session';
 
 const originalEnv = process.env;
 const fetchMock = jest.fn();
 let ip = 0;
+let accessToken = '';
+const SESSION_SECRET = 'segredo-de-teste-com-mais-de-32-caracteres';
 
-beforeEach(() => {
-  process.env = { ...originalEnv, OPENAI_API_KEY: 'sk-server-secret' };
+beforeEach(async () => {
+  process.env = { ...originalEnv, OPENAI_API_KEY: 'sk-server-secret', APP_SESSION_SECRET: SESSION_SECRET };
   delete process.env.OPENAI_LIVE_MODEL;
   delete process.env.SYMPTOM_MODEL;
   fetchMock.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   ip += 1; // cada teste com um "cliente" diferente para não esbarrar no limite
+  accessToken = (await issueSession(`user-${ip}`, 'user', SESSION_SECRET)).accessToken;
 });
 
 afterAll(() => {
@@ -29,7 +33,11 @@ afterAll(() => {
 function request(path: string, body: string, contentType = 'application/json') {
   return new Request(`http://localhost${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': contentType, 'x-forwarded-for': `10.0.0.${ip}` },
+    headers: {
+      'Content-Type': contentType,
+      'x-forwarded-for': `10.0.0.${ip}`,
+      Authorization: `Bearer ${accessToken}`,
+    },
     body,
   });
 }

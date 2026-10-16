@@ -32,9 +32,17 @@ export interface PeerConnectionLike {
   close(): void;
 }
 
+/** Sessão de áudio do sistema (rota para o alto-falante etc.). */
+export interface AudioSessionLike {
+  start(): void;
+  stop(): void;
+}
+
 export interface WebRTCModule {
   createPeerConnection(): PeerConnectionLike;
   getUserMedia(): Promise<MediaStreamLike>;
   /** Liga o áudio remoto à saída de som (no-op no celular, onde é automático). */
   attachRemoteAudio(pc: PeerConnectionLike): () => void;
+  /** No celular: modo chamada com viva-voz (InCallManager). Ausente na web. */
+  audioSession?: AudioSessionLike;
 }

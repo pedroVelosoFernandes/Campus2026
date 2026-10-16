@@ -8,29 +8,32 @@ import { colors } from '@/theme';
 const PROFILE = [0.22, 0.38, 0.3, 0.55, 0.42, 0.78, 0.6, 1, 0.82, 0.64, 0.9, 0.5, 0.34];
 const BARS = PROFILE.map((weight, position) => ({ id: `bar-${position}`, weight, position }));
 
-const BAR_WIDTH = 3.5;
-const BAR_GAP = 3.5;
+const BAR_WIDTH = 3;
+const BAR_GAP = 4;
 const TAU = Math.PI * 2;
 
 export type WaveformMotion = {
-  /** Relógio em ciclos (avança mais rápido quando a conversa está animada). */
+  /** Relógio em ciclos; só avança enquanto o assistente fala. */
   clock: SharedValue<number>;
-  /** 0 = barras quase paradas, 1 = barras vivas. */
+  /** 0 = barras em repouso (baixas e paradas), 1 = barras acompanhando a voz. */
   energy: SharedValue<number>;
-  /** 0 = todas as barras pulsam juntas, 1 = onda que percorre as barras. */
-  spread: SharedValue<number>;
 };
 
 type BarProps = WaveformMotion & { index: number; height: number; opacity: number };
 
-function Bar({ index, height, opacity, clock, energy, spread }: BarProps) {
+/** Altura de repouso (fração da altura de cada barra) quando ninguém fala pelo assistente. */
+const REST = 0.36;
+
+function Bar({ index, height, opacity, clock, energy }: BarProps) {
   const style = useAnimatedStyle(() => {
     const t = clock.get() * TAU;
-    const phase = index * 0.9 * spread.get();
-    const jitter = 0.78 + 0.22 * Math.sin(t * 2.3 + index * 1.7 * spread.get());
-    const wave = (0.5 + 0.5 * Math.sin(t + phase)) * jitter;
+    // Onda que percorre as barras + variação rápida e envelope lento, como uma voz.
+    const wave = 0.5 + 0.5 * Math.sin(t + index * 0.85);
+    const jitter = 0.7 + 0.3 * Math.sin(t * 2.7 + index * 1.9);
+    const envelope = 0.75 + 0.25 * Math.sin(t * 0.37 + 1.1);
+    const active = 0.22 + 0.78 * wave * jitter * envelope;
     const e = energy.get();
-    return { transform: [{ scaleY: 0.3 + e * 0.7 * wave + (1 - e) * 0.28 }] };
+    return { transform: [{ scaleY: REST + (active - REST) * e }] };
   });
   return <Animated.View style={[styles.bar, { height, opacity }, style]} />;
 }
@@ -41,7 +44,7 @@ export type VoiceWaveformProps = WaveformMotion & {
   maxHeight?: number;
 };
 
-/** Barras de áudio ao lado do orbe; a altura de cada uma oscila na thread de UI. */
+/** Barras de áudio ao lado do orbe; oscilam na thread de UI só com a voz do assistente. */
 function VoiceWaveformBase({ side, maxHeight = 64, ...motion }: VoiceWaveformProps) {
   const last = PROFILE.length - 1;
   return (

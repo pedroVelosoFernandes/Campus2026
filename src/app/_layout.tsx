@@ -9,10 +9,12 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AuthProvider, resolveRouteAccess, useAuth } from '@/features/auth';
+import { SettingsProvider } from '@/features/settings/SettingsProvider';
 import { colors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -20,6 +22,31 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export const unstable_settings = { anchor: '(tabs)' };
+
+/** Pilha raiz com as guardas de acesso: primeiro uso → onboarding → login → abas. */
+function RootStack() {
+  const { status, onboardingDone } = useAuth();
+  // Enquanto a sessão salva é lida (instantes), nada de abas piscando antes do onboarding.
+  if (status === 'loading') return <View style={styles.root} />;
+  const access = resolveRouteAccess(status, onboardingDone);
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+        contentStyle: { backgroundColor: colors.background },
+      }}>
+      <Stack.Protected guard={access.app} redirectTo={access.entry}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="assistente"
+          options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+        />
+      </Stack.Protected>
+      <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -39,19 +66,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            animation: 'slide_from_right',
-            contentStyle: { backgroundColor: colors.background },
-          }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="assistente"
-            options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
-          />
-        </Stack>
+        <SettingsProvider>
+          <AuthProvider>
+            <StatusBar style="dark" />
+            <RootStack />
+          </AuthProvider>
+        </SettingsProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

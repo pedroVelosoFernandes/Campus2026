@@ -21,6 +21,8 @@ export type UnitsSheetProps = {
   notice: string;
   onSelect: (unitId: string) => void;
   onClose: () => void;
+  /** Título da folha (padrão: "Outras unidades"). */
+  title?: string;
 };
 
 const HIDDEN = 700;
@@ -60,7 +62,15 @@ function UnitRow({ unit, selected, onPress }: { unit: UnitMatch; selected: boole
 }
 
 /** Folha inferior com as outras unidades; arrastar para baixo ou tocar fora fecha. */
-function UnitsSheetBase({ visible, units, selectedId, notice, onSelect, onClose }: UnitsSheetProps) {
+function UnitsSheetBase({
+  visible,
+  units,
+  selectedId,
+  notice,
+  onSelect,
+  onClose,
+  title = 'Outras unidades',
+}: UnitsSheetProps) {
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
   const translateY = useSharedValue(HIDDEN);
@@ -108,7 +118,7 @@ function UnitsSheetBase({ visible, units, selectedId, notice, onSelect, onClose 
             accessibilityViewIsModal>
             <View style={styles.handle} />
             <Text style={styles.title} accessibilityRole="header">
-              Outras unidades
+              {title}
             </Text>
             <View style={styles.list}>
               {units.map((unit) => (

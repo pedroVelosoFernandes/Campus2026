@@ -5,15 +5,25 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 1
+      # Sem backend: o app usa a conversa e as unidades de exemplo; nenhum segredo é necessário.
+      EXPO_NO_TELEMETRY: 1
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Cache do store do pnpm (chave = pnpm-lock.yaml).
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Lint (inclui limite de 500 linhas por arquivo e 80 por função)
@@ -24,3 +34,13 @@ jobs:
         run: pnpm test --ci
       - name: React Doctor
         run: pnpm doctor
+      # Valida o build de produção do app web + rotas /api (web.output = "server"):
+      # pega erros de bundle (imports nativos na web, rotas quebradas) antes do deploy.
+      - name: Build de produção (web + rotas de API)
+        run: pnpm expo export --platform web --output-dir dist
+      - name: Confere as rotas de API exportadas
+        run: |
+          for route in live-session assistant-text analyze-symptoms health-units; do
+            test -n "$(find dist/server/_expo/functions/api -name "${route}+api.js" -print -quit)" \
+              || { echo "rota /api/${route} ausente no build"; exit 1; }
+          done

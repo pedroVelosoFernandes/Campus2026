@@ -2,7 +2,8 @@ import { Info } from 'lucide-react-native';
 import { memo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, radii, spacing, typography } from '@/theme';
+import { useContrastColors, useScaledSize, useScaledTypography } from '@/features/settings';
+import { colors, radii, spacing } from '@/theme';
 
 export type InfoNoteProps = {
   /** Linha em destaque (ex.: "Antes de sair"). */
@@ -13,14 +14,19 @@ export type InfoNoteProps = {
 
 /** Faixa informativa azul-clara com ícone "i" (telas de vacinação e teleconsulta). */
 function InfoNoteBase({ title, message, style }: InfoNoteProps) {
+  const type = useScaledTypography();
+  const size = useScaledSize();
+  const palette = useContrastColors();
   return (
     <View style={[styles.box, style]} accessibilityRole="text">
       <View style={styles.icon}>
         <Info size={16} color={colors.onPrimary} strokeWidth={2.25} />
       </View>
       <View style={styles.texts}>
-        {title ? <Text style={styles.title}>{title}</Text> : null}
-        <Text style={styles.message}>{message}</Text>
+        {title ? (
+          <Text style={[type.bodyMedium, { fontSize: size(15), color: palette.textHeading }]}>{title}</Text>
+        ) : null}
+        <Text style={[type.caption, { color: palette.textSecondary }]}>{message}</Text>
       </View>
     </View>
   );
@@ -47,6 +53,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.info,
   },
   texts: { flex: 1, gap: spacing.xxs },
-  title: { ...typography.bodyMedium, fontSize: 15, color: colors.textHeading },
-  message: { ...typography.caption, color: colors.textSecondary },
 });

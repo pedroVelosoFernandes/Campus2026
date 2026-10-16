@@ -10,11 +10,20 @@ import { PressableScale } from './PressableScale';
 export type HomeHeaderProps = {
   firstName: string;
   hasNotifications?: boolean;
+  /** Quantidade de não lidas (entra no rótulo de acessibilidade). */
+  unreadCount?: number;
   onNotificationsPress?: () => void;
 };
 
 /** Saudação "Olá, Ana" com avatar e sino de notificações (ponto vermelho quando há novidades). */
-function HomeHeaderBase({ firstName, hasNotifications, onNotificationsPress }: HomeHeaderProps) {
+function bellLabel(hasNotifications?: boolean, unreadCount?: number) {
+  if (unreadCount === 1) return 'Notificações, 1 não lida';
+  if (unreadCount && unreadCount > 1) return `Notificações, ${unreadCount} não lidas`;
+  return hasNotifications ? 'Notificações, há novidades' : 'Notificações';
+}
+
+function HomeHeaderBase({ firstName, hasNotifications, unreadCount, onNotificationsPress }: HomeHeaderProps) {
+  const showDot = hasNotifications ?? (unreadCount ?? 0) > 0;
   return (
     <View style={styles.row}>
       <View style={styles.greeting}>
@@ -25,12 +34,12 @@ function HomeHeaderBase({ firstName, hasNotifications, onNotificationsPress }: H
       </View>
       <PressableScale
         onPress={onNotificationsPress}
-        accessibilityLabel={hasNotifications ? 'Notificações, há novidades' : 'Notificações'}
+        accessibilityLabel={bellLabel(showDot, unreadCount)}
         pressedScale={0.9}
         hitSlop={4}
         style={styles.bell}>
         <Bell size={25} color={colors.textHeading} strokeWidth={1.6} />
-        {hasNotifications ? <View style={styles.dot} /> : null}
+        {showDot ? <View style={styles.dot} testID="notificacoes-ponto" /> : null}
       </PressableScale>
     </View>
   );

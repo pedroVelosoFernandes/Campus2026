@@ -1,18 +1,16 @@
 import { router } from 'expo-router';
-import { RotateCcw } from 'lucide-react-native';
 import { useCallback, useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AssistantOrb } from '@/components/assistente/AssistantOrb';
+import { AssistantHeader } from '@/components/assistente/AssistantHeader';
 import { CallControls } from '@/components/assistente/CallControls';
-import { statusCopy } from '@/components/assistente/status-copy';
+import { isAssistantSpeaking, statusCopy } from '@/components/assistente/status-copy';
 import { SuggestionCard } from '@/components/assistente/SuggestionCard';
 import { TranscriptList } from '@/components/assistente/TranscriptList';
-import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useVoiceAssistant } from '@/features/voice';
-import { colors, fontFamily, screenPadding, spacing, typography } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 function leave() {
   if (router.canGoBack()) router.back();
@@ -47,37 +45,30 @@ export default function AssistenteScreen() {
 
   const failed = state === 'error' || (!!error && state === 'idle');
   const copy = statusCopy(failed ? 'error' : state, muted);
+  const retry = useCallback(() => void start(), [start]);
+  // Com conversa na tela, orbe e status recolhem e a transcrição ganha o espaço.
+  const hasMessages =
+    !!suggestedAction ||
+    transcript.some((m) => (m.role === 'user' || m.role === 'assistant') && m.text.trim().length > 0);
 
   return (
-    <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.safe, { paddingTop: insets.top }]}>
       <ScreenHeader title="Assistente" onBack={end} backLabel="Voltar e encerrar conversa" />
 
-      <View style={styles.orb}>
-        <AssistantOrb activity={copy.activity} />
-      </View>
-
-      <View style={styles.status} accessibilityLiveRegion="polite">
-        <Text style={styles.title} accessibilityRole="header">
-          {copy.title}
-        </Text>
-        <Text style={styles.subtitle}>{copy.subtitle}</Text>
-        {failed ? (
-          <Button
-            label="Tentar de novo"
-            icon={RotateCcw}
-            variant="secondary"
-            onPress={() => void start()}
-            style={styles.retry}
-          />
-        ) : null}
-      </View>
+      <AssistantHeader
+        copy={copy}
+        speaking={isAssistantSpeaking(state)}
+        compact={hasMessages}
+        onRetry={failed ? retry : undefined}
+      />
 
       <TranscriptList
         transcript={transcript}
+        userSpeaking={state === 'user_speaking'}
         footer={suggestedAction ? <SuggestionCard action={suggestedAction} onNavigate={stop} /> : null}
       />
 
-      <View style={styles.controls}>
+      <View style={[styles.controls, { paddingBottom: insets.bottom + spacing.sm }]}>
         <CallControls muted={muted} onKeyboard={openKeyboard} onToggleMute={toggleMic} onEnd={end} />
       </View>
     </View>
@@ -86,10 +77,10 @@ export default function AssistenteScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  orb: { marginTop: spacing.sm, paddingHorizontal: spacing.xl },
-  status: { alignItems: 'center', gap: spacing.sm, paddingHorizontal: screenPadding, marginBottom: spacing.xl },
-  title: { fontFamily: fontFamily.bold, fontSize: 24, lineHeight: 30, color: colors.textHeading, textAlign: 'center' },
-  subtitle: { ...typography.body, fontSize: 15.5, color: colors.textSecondary, textAlign: 'center' },
-  retry: { marginTop: spacing.sm, alignSelf: 'stretch' },
-  controls: { paddingTop: spacing.lg, paddingBottom: spacing.sm, paddingHorizontal: spacing.lg },
+  controls: {
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    // Base levemente menta: separa os controles da conversa sem linha dura.
+    backgroundImage: `linear-gradient(to bottom, ${colors.background} 0%, #F6FAFA 55%, #F1F7F7 100%)`,
+  },
 });

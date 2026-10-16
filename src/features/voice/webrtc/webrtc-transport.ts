@@ -2,7 +2,7 @@ import type { FetchLike } from '@/services/symptom-model/types';
 
 import { createEventIdFactory } from '../delegation';
 import type { LiveClientEvent, LiveServerEvent, TransportHandlers, VoiceTransport } from '../types';
-import type { DataChannelLike, MediaStreamLike, PeerConnectionLike, WebRTCModule } from './types';
+import type { AudioSessionLike, DataChannelLike, MediaStreamLike, PeerConnectionLike, WebRTCModule } from './types';
 
 /**
  * Transporte WebRTC para o GPT-Live.
@@ -12,6 +12,8 @@ import type { DataChannelLike, MediaStreamLike, PeerConnectionLike, WebRTCModule
  *    `POST /v1/live/sessions` com a chave do projeto e devolve a resposta SDP;
  * 3. aplica a resposta e espera `session.started` (não envia `session.start`);
  * 4. ao sair, envia `session.close` e espera `session.closed`.
+ * Eventos chegam por um RTCDataChannel da nossa própria conexão, não por postMessage entre janelas.
+ * No celular, a sessão de áudio (viva-voz) vale do microfone aberto até o encerramento.
  */
 
 export const LIVE_DATA_CHANNEL = 'oai-events';
@@ -79,6 +81,24 @@ async function negotiate(pc: PeerConnectionLike, options: WebRTCTransportOptions
   await pc.setRemoteDescription({ type: 'answer', sdp: answer.sdp });
 }
 
+/**
+ * Liga/desliga a sessão de áudio (viva-voz) uma vez por chamada. Nunca derruba
+ * a conversa: sem o módulo nativo (ex.: Expo Go), o som só sai pelo receptor.
+ */
+function audioToggle(session: AudioSessionLike | undefined) {
+  let active = false;
+  return (next: boolean) => {
+    if (!session || active === next) return;
+    active = next;
+    try {
+      if (next) session.start();
+      else session.stop();
+    } catch {
+      // ignora: módulo nativo ausente ou rota indisponível
+    }
+  };
+}
+
 export function createWebRTCTransport(options: WebRTCTransportOptions): VoiceTransport {
   const nextEventId = createEventIdFactory('evt_rtc');
   let pc: PeerConnectionLike | null = null;
@@ -87,9 +107,11 @@ export function createWebRTCTransport(options: WebRTCTransportOptions): VoiceTra
   let detachAudio: (() => void) | null = null;
   let closing: ReturnType<typeof waiter> | null = null;
   let closed = true;
+  const setAudio = audioToggle(options.webrtc.audioSession);
 
   function teardown() {
     closed = true;
+    setAudio(false);
     detachAudio?.();
     channel?.close();
     stream?.getTracks().forEach((track) => track.stop());
@@ -97,11 +119,8 @@ export function createWebRTCTransport(options: WebRTCTransportOptions): VoiceTra
     pc = channel = stream = detachAudio = null;
   }
 
-  function send(event: LiveClientEvent) {
-    if (channel?.readyState === 'open') channel.send(JSON.stringify(event));
-  }
+  const send = (event: LiveClientEvent) => void (channel?.readyState === 'open' && channel.send(JSON.stringify(event)));
 
-  // Eventos chegam por um RTCDataChannel da nossa própria conexão, não por postMessage entre janelas.
   function wire(peer: PeerConnectionLike, dataChannel: DataChannelLike, handlers: TransportHandlers, started: () => void) {
     dataChannel.addEventListener('message', (message) => {
       const event = parseServerEvent(message.data);
@@ -125,6 +144,7 @@ export function createWebRTCTransport(options: WebRTCTransportOptions): VoiceTra
       try {
         const localStream = await options.webrtc.getUserMedia();
         stream = localStream;
+        setAudio(true); // viva-voz
         pc = options.webrtc.createPeerConnection();
         localStream.getAudioTracks().forEach((track) => pc?.addTrack(track, localStream));
         detachAudio = options.webrtc.attachRemoteAudio(pc);

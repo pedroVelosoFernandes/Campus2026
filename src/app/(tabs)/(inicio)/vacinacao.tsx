@@ -11,19 +11,25 @@ import {
   describeServices,
   directionsUrl,
   displayName,
-  useNearbyUnits,
   variantFromParam,
   VARIANTS,
 } from '@/components/vacinacao/nearby-units';
-import { UnitCard } from '@/components/vacinacao/UnitCard';
+import { NearbyCard } from '@/components/vacinacao/NearbyCard';
 import { UnitMap } from '@/components/vacinacao/UnitMap';
 import { UnitsSheet } from '@/components/vacinacao/UnitsSheet';
+import { useNearbySearch } from '@/components/vacinacao/use-nearby-search';
+import { MOCK_USER_LOCATION } from '@/mocks/health-units';
 import { colors, screenPadding, spacing, typography } from '@/theme';
 
 const MAP_HEIGHT = 300;
 const CARD_OVERLAP = 44;
 const CARD_HINT = 'Confirme horários e disponibilidade.';
 const CARD_ENTER = FadeInDown.duration(320).reduceMotion(ReduceMotion.System);
+
+function mapLabel(name: string | null, official: boolean): string {
+  if (!name) return 'Mapa da região';
+  return official ? `Mapa com a localização de ${name}` : `Mapa com a localização de exemplo de ${name}`;
+}
 
 function goBack() {
   if (router.canGoBack()) router.back();
@@ -33,12 +39,16 @@ function goBack() {
 export default function VacinacaoScreen() {
   const { servico } = useLocalSearchParams<{ servico?: string }>();
   const copy = VARIANTS[variantFromParam(servico)];
-  const { units, origin, notice, compactNotice } = useNearbyUnits(copy.servico);
+  const nearby = useNearbySearch(copy.servico);
+  const { units, notice, compactNotice } = nearby;
+  // Antes de saber onde a pessoa está, o mapa mostra a região de referência.
+  const origin = nearby.search?.coordinates ?? MOCK_USER_LOCATION;
+  const official = nearby.dataSource === 'cnes';
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const selected = units.find((unit) => unit.id === selectedId) ?? units[0] ?? null;
-  const selectedCoords = selected ? coordinatesOf(selected.id) : null;
+  const selectedCoords = selected && nearby.card === 'unit' ? coordinatesOf(selected) : null;
   const name = selected ? displayName(selected.name) : null;
 
   const openDirections = useCallback(() => {
@@ -64,26 +74,32 @@ export default function VacinacaoScreen() {
         <UnitMap
           coordinates={selectedCoords ?? origin}
           showMarker={!!selectedCoords}
-          calloutLabel="Exemplo de unidade"
+          calloutLabel={official ? 'Unidade do SUS' : 'Exemplo de unidade'}
           height={MAP_HEIGHT}
           coveredBottom={CARD_OVERLAP}
-          accessibilityLabel={name ? `Mapa com a localização de exemplo de ${name}` : 'Mapa da região'}
+          accessibilityLabel={mapLabel(name, official)}
         />
 
         <Animated.View entering={CARD_ENTER} style={styles.card}>
-          <UnitCard
-            name={name}
-            services={selected ? describeServices(selected.services, copy.servico) : ''}
-            hint={CARD_HINT}
-            onDirections={openDirections}
-            onOtherUnits={openSheet}
-            directionsDisabled={!selectedCoords}
+          <NearbyCard
+            mode={nearby.card}
+            location={nearby.location}
+            canChangeCity={nearby.source === 'oficial'}
+            emptyMessage={official ? notice : undefined}
+            unit={{
+              name,
+              services: selected ? describeServices(selected.services, copy.servico) : '',
+              hint: CARD_HINT,
+              onDirections: openDirections,
+              onOtherUnits: openSheet,
+              directionsDisabled: !selectedCoords,
+            }}
           />
         </Animated.View>
 
         <View style={styles.below}>
           <InfoNote title={copy.noteTitle} message={copy.noteMessage} />
-          <Text style={styles.notice}>{compactNotice}</Text>
+          {nearby.card === 'unit' ? <Text style={styles.notice}>{compactNotice}</Text> : null}
         </View>
       </ScrollView>
 

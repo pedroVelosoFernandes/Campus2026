@@ -3,13 +3,17 @@ import { Platform } from 'react-native';
 
 import { MOCK_USER_LOCATION } from '@/mocks/health-units';
 import { MOCK_NEARBY_UNITS } from '@/mocks/nearby-units';
+import type { LocationFix } from '@/features/location/types';
 import {
   createLocalUnitFinder,
+  distanceKm,
   OFFICIAL_CHANNELS_NOTICE,
   type Coordinates,
   type HealthService,
   type HealthUnitFinder,
+  type PlaceHint,
   type UnitMatch,
+  type UnitSearchResult,
 } from '@/services/health-units';
 
 /** Variantes da tela: vacinação (padrão) e UBS de referência (consulta de rotina). */
@@ -79,8 +83,8 @@ export function displayName(name: string): string {
 
 const COORDINATES = new Map(MOCK_NEARBY_UNITS.map((unit) => [unit.id, unit.coordinates]));
 
-export function coordinatesOf(unitId: string): Coordinates | null {
-  return COORDINATES.get(unitId) ?? null;
+export function coordinatesOf(unit: Pick<UnitMatch, 'id' | 'coordinates'>): Coordinates | null {
+  return unit.coordinates ?? COORDINATES.get(unit.id) ?? null;
 }
 
 /** Rota até a unidade no Apple Mapas (iOS) ou Google Maps (demais plataformas). */
@@ -98,49 +102,83 @@ export const APPROXIMATE_LOCATION_NOTICE =
 /** Versão de uma linha para a tela; o aviso completo fica na lista "Ver outras unidades". */
 export const COMPACT_LOCATION_NOTICE = 'Local aproximado. Confirme pelo Disque Saúde 136 antes de ir.';
 
-const defaultFinder = createLocalUnitFinder(MOCK_NEARBY_UNITS);
+/** Aviso curto sob o cartão: "Local aproximado" só quando o ponto não é o GPS atual. */
+export function compactNoticeFor(approximate: boolean, dataSource: UnitSearchResult['dataSource']): string {
+  if (approximate) return COMPACT_LOCATION_NOTICE;
+  return dataSource === 'cnes'
+    ? 'Dados do CNES. Confirme pelo Disque Saúde 136 antes de ir.'
+    : 'Dados de exemplo. Confirme pelo Disque Saúde 136 antes de ir.';
+}
+
+/** Ponto e município usados na busca. */
+export type NearbySearch = { coordinates: Coordinates | null; place: PlaceHint | null; approximate: boolean };
+
+/** Raio da região de demonstração: fora dele, as unidades fictícias não fazem sentido. */
+const DEMO_RADIUS_KM = 60;
+
+/** Modo exemplo: usa o GPS se a pessoa estiver na região da demo; senão, o ponto aproximado. */
+export function demoSearch(fix: LocationFix | null): NearbySearch {
+  if (fix?.coordinates && distanceKm(fix.coordinates, MOCK_USER_LOCATION) <= DEMO_RADIUS_KM) {
+    return { coordinates: fix.coordinates, place: fix.place, approximate: fix.approximate };
+  }
+  return { coordinates: MOCK_USER_LOCATION, place: null, approximate: true };
+}
+
+export const defaultFinder = createLocalUnitFinder(MOCK_NEARBY_UNITS);
 
 export type NearbyUnitsState = {
   units: UnitMatch[];
-  /** Ponto de origem usado na busca (hoje sempre o ponto aproximado de demonstração). */
-  origin: Coordinates;
   notice: string;
   /** Aviso curto exibido sob o cartão. */
   compactNotice: string;
+  dataSource: UnitSearchResult['dataSource'];
   loading: boolean;
 };
 
+const searchKey = (servico: HealthService, search: NearbySearch | null) =>
+  search
+    ? [servico, search.coordinates?.latitude, search.coordinates?.longitude, search.place?.city, search.place?.uf].join('|')
+    : null;
+
 /**
  * Busca as unidades que oferecem o serviço (o finder filtra por serviço e só
- * depois ordena por distância). Sem permissão de localização no app, usa o
- * ponto aproximado do bairro e avisa para confirmar nos canais oficiais.
+ * depois ordena por distância). `search` nulo = ainda esperando a localização.
  */
-export function useNearbyUnits(servico: HealthService, finder: HealthUnitFinder = defaultFinder): NearbyUnitsState {
-  const [result, setResult] = useState<{ servico: HealthService; units: UnitMatch[] } | null>(null);
+export function useNearbyUnits(
+  servico: HealthService,
+  search: NearbySearch | null,
+  finder: HealthUnitFinder = defaultFinder,
+): NearbyUnitsState {
+  const [state, setState] = useState<{ key: string; result: UnitSearchResult | null } | null>(null);
+  const key = searchKey(servico, search);
+  const latitude = search?.coordinates?.latitude;
+  const longitude = search?.coordinates?.longitude;
+  const city = search?.place?.city;
+  const uf = search?.place?.uf;
 
   useEffect(() => {
+    if (!key) return;
     let active = true;
+    const coordinates = latitude !== undefined && longitude !== undefined ? { latitude, longitude } : null;
     finder
-      .find({ servico, coordinates: MOCK_USER_LOCATION })
-      .then((found) => {
-        if (active) setResult({ servico, units: found.units });
-      })
-      .catch(() => {
-        if (active) setResult({ servico, units: [] });
-      });
+      .find({ servico, coordinates, place: city ? { city, uf } : null })
+      .then((result) => active && setState({ key, result }))
+      .catch(() => active && setState({ key, result: null }));
     return () => {
       active = false;
     };
-  }, [finder, servico]);
+  }, [city, finder, key, latitude, longitude, servico, uf]);
 
-  return useMemo(
-    () => ({
-      units: result?.servico === servico ? result.units : [],
-      origin: MOCK_USER_LOCATION,
-      notice: APPROXIMATE_LOCATION_NOTICE,
-      compactNotice: COMPACT_LOCATION_NOTICE,
-      loading: result?.servico !== servico,
-    }),
-    [result, servico],
-  );
+  const approximate = search?.approximate ?? true;
+  return useMemo(() => {
+    const result = state?.key === key ? state.result : undefined;
+    const dataSource = result?.dataSource ?? (finder === defaultFinder ? 'exemplo' : 'cnes');
+    return {
+      units: result?.units ?? [],
+      notice: result && (result.dataSource === 'cnes' || !approximate) ? result.notice : APPROXIMATE_LOCATION_NOTICE,
+      compactNotice: compactNoticeFor(approximate, dataSource),
+      dataSource,
+      loading: key === null || result === undefined,
+    };
+  }, [approximate, finder, key, state]);
 }
