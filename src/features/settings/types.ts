@@ -37,8 +37,20 @@ export type PrivacyConsents = {
   useLocation: boolean;
 };
 
+/** Como a pessoa quer ser chamada. Fica só no aparelho; o login por SMS não traz nome. */
+export type ProfilePreferences = {
+  /** Vazio = sem nome (a saudação vira "Olá!"). */
+  name: string;
+  /** Já respondeu ou dispensou o "Como podemos te chamar?" da tela inicial. */
+  namePromptDone: boolean;
+};
+
+/** Limite do nome exibido na saudação. */
+export const MAX_NAME_LENGTH = 40;
+
 export type Settings = {
   version: 1;
+  profile: ProfilePreferences;
   notifications: NotificationPreferences;
   accessibility: AccessibilityPreferences;
   privacy: PrivacyConsents;
@@ -50,13 +62,14 @@ export const DEFAULT_REFERENCE_UNIT_ID = 'ubs-do-seu-bairro';
 
 export const DEFAULT_SETTINGS: Settings = {
   version: 1,
+  profile: { name: '', namePromptDone: false },
   notifications: { vaccineReminders: true, appointmentReminders: true, campaignAlerts: false },
   accessibility: { fontScale: 1, highContrast: false, readAloud: false, reduceMotion: false },
   privacy: { saveConversationHistory: false, useLocation: false },
   referenceUnitId: DEFAULT_REFERENCE_UNIT_ID,
 };
 
-export type SettingsSection = 'notifications' | 'accessibility' | 'privacy';
+export type SettingsSection = 'profile' | 'notifications' | 'accessibility' | 'privacy';
 
 /** Alteração parcial de uma seção, ex.: `{ accessibility: { readAloud: true } }`. */
 export type SettingsPatch = {

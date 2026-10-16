@@ -1,10 +1,11 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { useContrastColors, useScaledTypography } from '@/features/settings';
-import { colors, spacing } from '@/theme';
+import { useContrastColors } from '@/features/settings';
+import { colors, spacing, typography } from '@/theme';
 
+import { AppText } from './AppText';
 import { PressableScale } from './PressableScale';
 
 export type SettingsRowProps = {
@@ -16,7 +17,6 @@ export type SettingsRowProps = {
 
 /** Linha de lista com ícone, rótulo, detalhe opcional e chevron. */
 function SettingsRowBase({ icon: Icon, label, detail, onPress }: SettingsRowProps) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   return (
     <PressableScale
@@ -26,8 +26,8 @@ function SettingsRowBase({ icon: Icon, label, detail, onPress }: SettingsRowProp
       style={styles.row}>
       <Icon size={22} color={colors.primary} strokeWidth={1.6} />
       <View style={styles.texts}>
-        <Text style={[type.bodyMedium, { color: palette.textHeading }]}>{label}</Text>
-        {detail ? <Text style={[type.caption, { color: palette.textSecondary }]}>{detail}</Text> : null}
+        <AppText style={[typography.bodyMedium, { color: palette.textHeading }]}>{label}</AppText>
+        {detail ? <AppText style={[typography.caption, { color: palette.textSecondary }]}>{detail}</AppText> : null}
       </View>
       <ChevronRight size={20} color={palette.textMuted} strokeWidth={1.75} />
     </PressableScale>

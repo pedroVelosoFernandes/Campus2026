@@ -1,8 +1,10 @@
 import { router, type Href } from 'expo-router';
 import { MapPin, MessageSquare, Phone, Syringe, Video, type LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
+import { Button } from '@/components/Button';
 import { OptionCard } from '@/components/OptionCard';
 import { PressableScale } from '@/components/PressableScale';
 import type { SuggestedAction, SuggestedActionKind } from '@/features/voice';
@@ -30,6 +32,10 @@ export type SuggestionCardProps = {
 /** Próximo passo sugerido pelo assistente; em emergência, destaca a ligação para o SAMU. */
 function SuggestionCardBase({ action, onNavigate }: SuggestionCardProps) {
   const destination = DESTINATIONS[action.kind];
+  const openEmergencyContacts = () => {
+    onNavigate?.();
+    router.navigate('/emergencia');
+  };
   const open = () => {
     onNavigate?.();
     router.navigate(destination.href);
@@ -38,16 +44,22 @@ function SuggestionCardBase({ action, onNavigate }: SuggestionCardProps) {
   if (action.emergency) {
     return (
       <View style={styles.emergency} accessibilityRole="alert">
-        <Text style={styles.emergencyTitle}>Procure ajuda agora</Text>
-        <Text style={styles.emergencyText}>{action.label}</Text>
+        <AppText style={styles.emergencyTitle}>Procure ajuda agora</AppText>
+        <AppText style={styles.emergencyText}>{action.label}</AppText>
         <PressableScale
           onPress={callSamu}
           accessibilityLabel="Ligar para o SAMU, 192"
           pressedScale={0.97}
           style={styles.samu}>
           <Phone size={20} color={colors.onPrimary} strokeWidth={2} />
-          <Text style={styles.samuLabel}>Ligar para o SAMU 192</Text>
+          <AppText style={styles.samuLabel}>Ligar para o SAMU 192</AppText>
         </PressableScale>
+        <Button
+          label="Ver outros contatos de emergência"
+          variant="outline"
+          onPress={openEmergencyContacts}
+          accessibilityHint="Encerra a conversa e abre a lista de telefones de emergência"
+        />
       </View>
     );
   }

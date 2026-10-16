@@ -1,8 +1,9 @@
 import { ChevronRight, Phone } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { PressableScale } from '@/components/PressableScale';
 import type { SuggestedAction } from '@/features/voice';
@@ -13,17 +14,19 @@ export type SuggestedActionCardProps = {
   /** Abre a tela sugerida; ausente quando a sugestão não tem destino. */
   onOpen?: () => void;
   onCallEmergency: () => void;
+  /** Abre a tela com os outros telefones de emergência (/emergencia). */
+  onOpenEmergencyContacts?: () => void;
 };
 
 const ENTERING = FadeInDown.duration(240).reduceMotion(ReduceMotion.System);
 
 /** Cartão do próximo passo sugerido pelo assistente; emergência destaca o SAMU 192. */
-function SuggestedActionCardBase({ action, onOpen, onCallEmergency }: SuggestedActionCardProps) {
+function SuggestedActionCardBase({ action, onOpen, onCallEmergency, onOpenEmergencyContacts }: SuggestedActionCardProps) {
   if (action.emergency) {
     return (
       <Animated.View entering={ENTERING} style={[styles.card, styles.emergency]}>
-        <Text style={styles.emergencyTitle}>Procure atendimento agora</Text>
-        <Text style={styles.body}>Se houver risco à vida, ligue para o SAMU.</Text>
+        <AppText style={styles.emergencyTitle}>Procure atendimento agora</AppText>
+        <AppText style={styles.body}>Se houver risco à vida, ligue para o SAMU.</AppText>
         <Button
           label="Ligar 192 (SAMU)"
           icon={Phone}
@@ -31,6 +34,14 @@ function SuggestedActionCardBase({ action, onOpen, onCallEmergency }: SuggestedA
           accessibilityHint="Abre o telefone para ligar 192"
           style={styles.samu}
         />
+        {onOpenEmergencyContacts ? (
+          <Button
+            label="Ver outros contatos de emergência"
+            variant="outline"
+            onPress={onOpenEmergencyContacts}
+            accessibilityHint="Abre a lista de telefones de emergência"
+          />
+        ) : null}
       </Animated.View>
     );
   }
@@ -39,8 +50,8 @@ function SuggestedActionCardBase({ action, onOpen, onCallEmergency }: SuggestedA
     <Animated.View entering={ENTERING}>
       <PressableScale onPress={onOpen} accessibilityLabel={action.label} style={[styles.card, styles.row]}>
         <View style={styles.texts}>
-          <Text style={styles.caption}>Próximo passo</Text>
-          <Text style={styles.title}>{action.label}</Text>
+          <AppText style={styles.caption}>Próximo passo</AppText>
+          <AppText style={styles.title}>{action.label}</AppText>
         </View>
         <ChevronRight size={22} color={colors.primary} strokeWidth={2} />
       </PressableScale>

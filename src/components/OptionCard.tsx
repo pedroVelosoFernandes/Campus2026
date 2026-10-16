@@ -1,9 +1,11 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { useContrastColors } from '@/features/settings';
 import { colors, fontFamily, radii, shadows, spacing, typography } from '@/theme';
 
+import { AppText } from './AppText';
 import { IconTile } from './IconTile';
 import { PressableScale } from './PressableScale';
 
@@ -17,17 +19,18 @@ export type OptionCardProps = {
 
 /** Cartão de opção da tela "Como você quer cuidar da saúde?" (ícone + título + subtítulo + chevron). */
 function OptionCardBase({ icon, title, subtitle, onPress, testID }: OptionCardProps) {
+  const palette = useContrastColors();
   return (
     <PressableScale
       onPress={onPress}
       testID={testID}
       accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
       pressedScale={0.98}
-      style={styles.card}>
+      style={[styles.card, { borderColor: palette.border }]}>
       <IconTile icon={icon} size={64} />
       <View style={styles.texts}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <AppText style={styles.title}>{title}</AppText>
+        {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
       </View>
       <ChevronRight size={24} color={colors.textHeading} strokeWidth={2} />
     </PressableScale>

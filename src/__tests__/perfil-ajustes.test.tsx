@@ -9,7 +9,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AcessibilidadeScreen from '@/app/(tabs)/perfil/acessibilidade';
 import NotificacoesScreen from '@/app/(tabs)/perfil/notificacoes';
 import PrivacidadeScreen from '@/app/(tabs)/perfil/privacidade';
+import { AuthProvider, createMemoryStore, createSessionClient, useAuth, type AuthContextValue } from '@/features/auth';
 import { DEFAULT_SETTINGS, useSettings, type Settings } from '@/features/settings';
+import { saveHealthCard, useHealthCard } from '@/features/settings/health-card';
 import { SettingsProvider } from '@/features/settings/SettingsProvider';
 import { eraseMyData, PRIVACY_POLICY_URL, shareMyData } from '@/features/privacy';
 
@@ -44,18 +46,40 @@ let latest: Settings = DEFAULT_SETTINGS;
 const track = (settings: Settings) => {
   latest = settings;
 };
+let auth: AuthContextValue | null = null;
+let card: string | null = null;
+const trackAuth = (value: AuthContextValue, cns: string | null) => {
+  auth = value;
+  card = cns;
+};
 function SettingsSpy() {
   const { settings } = useSettings();
+  const authValue = useAuth();
+  const { cns } = useHealthCard();
   useEffect(() => track(settings), [settings]);
+  useEffect(() => trackAuth(authValue, cns), [authValue, cns]);
   return null;
+}
+
+/** Pessoa logada (modo demonstração) que já passou pelo onboarding. */
+function signedInAuth() {
+  const sessionStore = createMemoryStore({
+    'alo-saude.session': JSON.stringify({ mode: 'demo', user: { id: 'demo', phoneMasked: '(11) •••••-4321', demo: true } }),
+  });
+  const preferences = createMemoryStore({
+    'alo-saude.onboarding': JSON.stringify({ consentVersion: 1, acceptedAt: '2026-10-01T00:00:00.000Z' }),
+  });
+  return { sessionClient: createSessionClient({ store: sessionStore }), preferences };
 }
 
 const renderWithSettings = (ui: ReactElement, settings: Settings = DEFAULT_SETTINGS) =>
   render(
     <SafeAreaProvider initialMetrics={METRICS}>
       <SettingsProvider initialSettings={settings}>
-        {ui}
-        <SettingsSpy />
+        <AuthProvider {...signedInAuth()}>
+          {ui}
+          <SettingsSpy />
+        </AuthProvider>
       </SettingsProvider>
     </SafeAreaProvider>,
   );
@@ -149,12 +173,17 @@ describe('Privacidade e dados', () => {
     expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith(PRIVACY_POLICY_URL);
   });
 
-  it('pede confirmação antes de apagar e volta ao padrão', async () => {
+  it('pede confirmação antes de apagar e volta ao primeiro uso', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await saveHealthCard('898 0012 3456 7891');
     await renderWithSettings(<PrivacidadeScreen />, {
       ...DEFAULT_SETTINGS,
+      profile: { name: 'Maria', namePromptDone: true },
+      accessibility: { ...DEFAULT_SETTINGS.accessibility, fontScale: 1.45, highContrast: true },
       privacy: { saveConversationHistory: true, useLocation: false },
     });
+    await waitFor(() => expect(auth?.status).toBe('signedIn'));
+    expect(card).toBe('898001234567891');
 
     await fireEvent.press(screen.getByRole('button', { name: /^Apagar meus dados/ }));
     expect(eraseMyData).not.toHaveBeenCalled();
@@ -164,6 +193,9 @@ describe('Privacidade e dados', () => {
     await act(async () => buttons[1].onPress?.());
     expect(eraseMyData).toHaveBeenCalled();
     expect(latest).toEqual(DEFAULT_SETTINGS);
+    // Saiu da conta e voltou ao onboarding; o Cartão SUS em memória foi esquecido.
+    expect(auth).toMatchObject({ status: 'signedOut', user: null, onboardingDone: false });
+    expect(card).toBeNull();
     expect(alert).toHaveBeenLastCalledWith('Dados apagados', expect.any(String));
   });
 });

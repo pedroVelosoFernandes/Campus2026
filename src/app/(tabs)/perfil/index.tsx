@@ -1,15 +1,19 @@
 import { router, type Href } from 'expo-router';
-import { Accessibility, Bell, CircleHelp, IdCard, MapPin, ShieldCheck } from 'lucide-react-native';
-import { Fragment } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Accessibility, Bell, CircleHelp, MapPin, ShieldCheck } from 'lucide-react-native';
+import { Fragment, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { Avatar } from '@/components/Avatar';
+import { NameSheet } from '@/components/NameSheet';
+import { AccountCard } from '@/components/perfil/AccountCard';
+import { HealthCardCard } from '@/components/perfil/HealthCardCard';
 import { referenceUnitName } from '@/components/perfil/reference-unit';
+import { PressableScale } from '@/components/PressableScale';
 import { SettingsRow } from '@/components/SettingsRow';
-import { useContrastColors, useScaledSize, useScaledTypography, useSettings, type Settings } from '@/features/settings';
-import { mockUser } from '@/mocks/user';
-import { colors, radii, screenPadding, shadows, spacing } from '@/theme';
+import { useContrastColors, useSettings, type Settings } from '@/features/settings';
+import { colors, radii, screenPadding, shadows, spacing, typography } from '@/theme';
 
 type Row = { icon: typeof MapPin; label: string; detail: string; href: Href };
 
@@ -33,38 +37,39 @@ function buildRows(settings: Settings): Row[] {
   ];
 }
 
+function Identity({ name, onEditName }: { name: string; onEditName: () => void }) {
+  const palette = useContrastColors();
+  return (
+    <View style={styles.identity}>
+      <Avatar size={72} />
+      <View style={styles.identityTexts}>
+        <AppText style={[typography.headline, styles.name, { color: palette.textHeading }]} numberOfLines={2}>
+          {name || 'Olá!'}
+        </AppText>
+        <PressableScale onPress={onEditName} hitSlop={8} pressedScale={0.97} style={styles.editName}>
+          <AppText style={styles.editNameText}>{name ? 'Editar nome' : 'Como podemos te chamar?'}</AppText>
+        </PressableScale>
+      </View>
+    </View>
+  );
+}
+
 export default function PerfilScreen() {
   const { settings } = useSettings();
-  const type = useScaledTypography();
-  const size = useScaledSize();
   const palette = useContrastColors();
+  const [editingName, setEditingName] = useState(false);
   const rows = buildRows(settings);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={[type.title, styles.title, { color: palette.textHeading }]} accessibilityRole="header">
+        <AppText style={[typography.title, styles.title, { color: palette.textHeading }]} accessibilityRole="header">
           Perfil
-        </Text>
+        </AppText>
 
-        <View style={styles.identity}>
-          <Avatar size={72} />
-          <View style={styles.identityTexts}>
-            <Text style={[type.headline, { fontSize: size(20), lineHeight: size(26), color: palette.textHeading }]}>
-              {mockUser.fullName}
-            </Text>
-            <Text style={[type.caption, { color: palette.textSecondary }]}>{mockUser.city}</Text>
-          </View>
-        </View>
-
-        <View style={[styles.card, { borderColor: palette.border }]} accessible accessibilityLabel={`Cartão SUS, número ${mockUser.cns}`}>
-          <View style={styles.cardHeader}>
-            <IdCard size={22} color={colors.primary} strokeWidth={1.6} />
-            <Text style={[type.bodyMedium, { color: palette.textHeading }]}>Cartão SUS</Text>
-          </View>
-          <Text style={[type.headline, styles.cns, { fontSize: size(22), lineHeight: size(28) }]}>{mockUser.cns}</Text>
-          <Text style={[type.caption, { color: palette.textSecondary }]}>Nascimento: {mockUser.birthDate}</Text>
-        </View>
+        <Identity name={settings.profile.name} onEditName={() => setEditingName(true)} />
+        <AccountCard />
+        <HealthCardCard />
 
         <View style={[styles.list, { borderColor: palette.border }]}>
           {rows.map((row, index) => (
@@ -75,6 +80,7 @@ export default function PerfilScreen() {
           ))}
         </View>
       </ScrollView>
+      <NameSheet visible={editingName} onClose={() => setEditingName(false)} />
     </SafeAreaView>
   );
 }
@@ -85,15 +91,9 @@ const styles = StyleSheet.create({
   title: { paddingHorizontal: spacing.xs },
   identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingHorizontal: spacing.xs },
   identityTexts: { flex: 1, gap: spacing.xxs },
-  card: {
-    gap: spacing.sm,
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    backgroundColor: colors.mint,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  cns: { letterSpacing: 1, color: colors.primary },
+  name: { fontSize: 20, lineHeight: 26 },
+  editName: { minHeight: 32, justifyContent: 'center', alignSelf: 'flex-start' },
+  editNameText: { ...typography.bodyMedium, fontSize: 15, color: colors.primary },
   list: {
     borderRadius: radii.lg,
     borderWidth: 1,

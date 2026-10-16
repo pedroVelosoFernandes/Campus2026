@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useContrastColors } from '@/features/settings';
 import { colors, shadows, spacing } from '@/theme';
 
 import { TabBarItem } from './TabBarItem';
@@ -25,10 +26,14 @@ export type TabBarProps = {
 
 /** Barra inferior: Início / Conversas / Perfil; aba ativa com ícone preenchido e rótulo teal. */
 function TabBarBase({ tabs, activeKey, onTabPress, onTabLongPress, bottomInset = 0 }: TabBarProps) {
+  const palette = useContrastColors();
   return (
     <View
       accessibilityRole="tablist"
-      style={[styles.bar, { paddingBottom: Math.max(bottomInset - spacing.md, spacing.sm) }]}>
+      style={[
+        styles.bar,
+        { borderTopColor: palette.border, paddingBottom: Math.max(bottomInset - spacing.md, spacing.sm) },
+      ]}>
       {tabs.map((tab, index) => {
         const focused = tab.key === activeKey;
         return (

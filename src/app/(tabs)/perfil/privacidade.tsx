@@ -9,11 +9,11 @@ import { SettingsGroup } from '@/components/perfil/SettingsGroup';
 import { SubScreen } from '@/components/perfil/SubScreen';
 import {
   DATA_PROTECTION_OFFICER,
-  eraseMyData,
   PRIVACY_POLICY_URL,
   PROCESSED_DATA,
   shareMyData,
 } from '@/features/privacy';
+import { useEraseMyData } from '@/features/privacy/use-erase';
 import { useSettings } from '@/features/settings';
 import { useLocationPermission } from '@/features/settings/permissions';
 
@@ -27,7 +27,7 @@ const DATA_ICONS: Record<string, LucideIcon> = {
 function confirmErase(onConfirm: () => void) {
   Alert.alert(
     'Apagar meus dados?',
-    'Isso remove deste aparelho suas preferências, consentimentos e qualquer histórico salvo. Não dá para desfazer.',
+    'Isso remove deste aparelho suas preferências, consentimentos, Cartão SUS e qualquer histórico salvo, e sai da sua conta. Não dá para desfazer.',
     [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Apagar', style: 'destructive', onPress: onConfirm },
@@ -39,19 +39,17 @@ function exportData() {
   shareMyData().catch(() => Alert.alert('Não foi possível exportar', 'Tente novamente em instantes.'));
 }
 
-function eraseAll(reset: () => void) {
-  eraseMyData()
-    .then(() => {
-      reset();
-      Alert.alert('Dados apagados', 'O app voltou às configurações iniciais.');
-    })
+function eraseAll(eraseEverything: () => Promise<void>) {
+  eraseEverything()
+    .then(() => Alert.alert('Dados apagados', 'O app voltou ao início, como no primeiro uso.'))
     .catch(() => Alert.alert('Não foi possível apagar', 'Tente novamente em instantes.'));
 }
 
 export default function PrivacidadeScreen() {
-  const { settings, update, reset } = useSettings();
+  const { settings, update } = useSettings();
+  const eraseEverything = useEraseMyData();
   const location = useLocationPermission();
-  const erase = useCallback(() => confirmErase(() => eraseAll(reset)), [reset]);
+  const erase = useCallback(() => confirmErase(() => eraseAll(eraseEverything)), [eraseEverything]);
   const locationBlocked = settings.privacy.useLocation === false && location.state === 'denied';
 
   const toggleLocation = useCallback(

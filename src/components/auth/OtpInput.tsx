@@ -1,7 +1,8 @@
 import { memo, useRef, useState, type ComponentRef } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { Pressable } from 'react-native-gesture-handler';
 
+import { AppText } from '@/components/AppText';
 import { OTP_LENGTH } from '@/features/auth/phone';
 import { colors, radii, spacing, typography } from '@/theme';
 
@@ -37,7 +38,7 @@ function OtpInputBase({ value, onChange, onComplete, invalid }: OtpInputProps) {
             <View
               key={index}
               style={[styles.box, digit !== '' && styles.boxFilled, active && styles.boxActive, invalid && styles.boxInvalid]}>
-              <Text style={styles.digit}>{digit}</Text>
+              <AppText style={styles.digit}>{digit}</AppText>
             </View>
           );
         })}

@@ -1,8 +1,9 @@
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { useContrastColors, useScaledTypography } from '@/features/settings';
-import { colors, fontFamily, spacing } from '@/theme';
+import { AppText } from '@/components/AppText';
+import { useContrastColors } from '@/features/settings';
+import { colors, fontFamily, spacing, typography } from '@/theme';
 
 export type StepListProps = {
   steps: readonly { title: string; text: string }[];
@@ -10,7 +11,6 @@ export type StepListProps = {
 
 /** Passos numerados dentro de um cartão (ex.: como funciona a consulta de rotina). */
 function StepListBase({ steps }: StepListProps) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   return (
     <View style={styles.list}>
@@ -21,11 +21,11 @@ function StepListBase({ steps }: StepListProps) {
           accessible
           accessibilityLabel={`Passo ${index + 1}: ${step.title}. ${step.text}`}>
           <View style={styles.badge}>
-            <Text style={styles.number}>{index + 1}</Text>
+            <AppText style={styles.number}>{index + 1}</AppText>
           </View>
           <View style={styles.texts}>
-            <Text style={[type.bodyMedium, { color: palette.textHeading }]}>{step.title}</Text>
-            <Text style={[type.caption, { color: palette.textSecondary }]}>{step.text}</Text>
+            <AppText style={[typography.bodyMedium, { color: palette.textHeading }]}>{step.title}</AppText>
+            <AppText style={[typography.caption, { color: palette.textSecondary }]}>{step.text}</AppText>
           </View>
         </View>
       ))}

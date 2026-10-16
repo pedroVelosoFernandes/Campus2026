@@ -1,4 +1,5 @@
 export {
+  cancelDisabledReminders,
   dismissNotification,
   hydrateNotifications,
   markAllAsRead,
@@ -20,3 +21,4 @@ export {
 } from './reminders';
 export { STORAGE_KEY } from './storage';
 export { useReminderFlow } from './use-reminder-flow';
+export { isReminderAllowed, preferenceFor, PREFERENCE_BY_KIND, remindersToCancel } from './preferences';

@@ -1,7 +1,10 @@
 import { useEffect, useSyncExternalStore } from 'react';
 
+import { useSettings } from '@/features/settings';
 import { MOCK_NOTIFICATIONS, type AppNotification } from '@/mocks/notifications';
 
+import { remindersToCancel } from './preferences';
+import { cancelReminder } from './reminders';
 import { EMPTY_STATE, loadState, saveState, type NotificationsState } from './storage';
 
 /**
@@ -84,21 +87,44 @@ export function selectNotifications(
   current: NotificationsState,
   source: readonly AppNotification[] = MOCK_NOTIFICATIONS,
 ): NotificationView[] {
+  const dismissed = new Set(current.dismissedIds);
+  const read = new Set(current.readIds);
   return source
-    .filter((item) => !current.dismissedIds.includes(item.id))
+    .filter((item) => !dismissed.has(item.id))
     .map((item) => ({
       ...item,
-      read: current.readIds.includes(item.id),
+      read: read.has(item.id),
       reminderId: current.reminders[item.id] ?? null,
     }));
 }
 
-/** Lista visível (sem as removidas) com estado de leitura e contagem de não lidas. */
+/** Cancela os lembretes agendados das categorias desligadas em Perfil > Notificações. */
+export async function cancelDisabledReminders(
+  preferences: Parameters<typeof remindersToCancel>[1],
+  source: readonly AppNotification[] = MOCK_NOTIFICATIONS,
+): Promise<number> {
+  await hydrateNotifications();
+  const stale = remindersToCancel(state.reminders, preferences, source);
+  await Promise.all(stale.map(({ reminderId }) => cancelReminder(reminderId)));
+  for (const { id } of stale) setReminder(id, null);
+  return stale.length;
+}
+
+/**
+ * Lista visível (sem as removidas) com estado de leitura e contagem de não lidas.
+ * Usado pelo sino da Início (sempre montada), então também aplica as preferências:
+ * desligar uma categoria cancela os lembretes dela.
+ */
 export function useNotifications() {
   const current = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const { settings, ready } = useSettings();
+  const preferences = settings.notifications;
   useEffect(() => {
     void hydrateNotifications();
   }, []);
+  useEffect(() => {
+    if (ready) void cancelDisabledReminders(preferences);
+  }, [preferences, ready]);
   const items = selectNotifications(current);
   const unreadCount = items.filter((item) => !item.read).length;
   return { items, unreadCount };

@@ -4,12 +4,14 @@
  * `@/features/settings/SettingsProvider`.
  */
 export * from './types';
-export { applyPatch, nearestFontScale, sanitizeSettings, stepFontScale } from './logic';
+export { contrastTextColor, HIGH_CONTRAST_TEXT, resolveTextStyle } from './text-style';
+export { applyPatch, firstName, greeting, nearestFontScale, sanitizeName, sanitizeSettings, stepFontScale } from './logic';
 export {
   HIGH_CONTRAST_OVERRIDES,
   scaleTypography,
   SettingsContext,
   useContrastColors,
+  useAccessibleTextStyle,
   useFontScale,
   useHighContrast,
   useReadAloud,

@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { colors, spacing, typography } from '@/theme';
 
@@ -10,7 +11,7 @@ function GuestOptionBase({ onPress }: { onPress: () => void }) {
     <View style={styles.wrap}>
       <View style={styles.dividerRow} accessible={false}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>ou</Text>
+        <AppText style={styles.dividerText}>ou</AppText>
         <View style={styles.dividerLine} />
       </View>
       <Button
@@ -19,7 +20,7 @@ function GuestOptionBase({ onPress }: { onPress: () => void }) {
         onPress={onPress}
         accessibilityHint="Usa o assistente sem criar conta"
       />
-      <Text style={styles.note}>O assistente funciona sem conta. Só o histórico e o perfil precisam de login.</Text>
+      <AppText style={styles.note}>O assistente funciona sem conta. Só o histórico e o perfil precisam de login.</AppText>
     </View>
   );
 }

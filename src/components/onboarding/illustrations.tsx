@@ -1,7 +1,8 @@
 import { Hospital, Keyboard, LockKeyhole, Mic, Phone, ShieldCheck, type LucideIcon } from 'lucide-react-native';
 import { memo, type ReactNode } from 'react';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { IconTile } from '@/components/IconTile';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
 
@@ -28,7 +29,7 @@ function Chip({ icon: Icon, label, style, tone = 'default' }: { icon: LucideIcon
   return (
     <View style={[styles.chip, danger && styles.chipDanger, style]}>
       <Icon size={18} color={danger ? colors.danger : colors.primary} strokeWidth={1.9} />
-      <Text style={[styles.chipLabel, danger && styles.chipLabelDanger]}>{label}</Text>
+      <AppText style={[styles.chipLabel, danger && styles.chipLabelDanger]}>{label}</AppText>
     </View>
   );
 }
@@ -51,8 +52,8 @@ function GuidanceArtBase() {
       <View style={styles.card}>
         <IconTile icon={Hospital} size={48} />
         <View style={styles.cardTexts}>
-          <Text style={styles.cardTitle}>UBS do seu bairro</Text>
-          <Text style={styles.cardDetail}>Consulta de rotina</Text>
+          <AppText style={styles.cardTitle}>UBS do seu bairro</AppText>
+          <AppText style={styles.cardDetail}>Consulta de rotina</AppText>
         </View>
       </View>
       <Chip icon={Phone} label="Emergência: 192" tone="danger" style={styles.chipBelowCard} />

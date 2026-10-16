@@ -1,8 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { PressableScale } from '@/components/PressableScale';
 import { colors, radii, spacing, typography } from '@/theme';
 
@@ -29,7 +30,7 @@ function ConsentCheckboxBase({ checked, onChange, label }: ConsentCheckboxProps)
       <View style={[styles.box, checked && styles.boxChecked]}>
         {checked ? <Check size={18} color={colors.onPrimary} strokeWidth={2.5} /> : null}
       </View>
-      <Text style={styles.label}>{label}</Text>
+      <AppText style={styles.label}>{label}</AppText>
     </PressableScale>
   );
 }

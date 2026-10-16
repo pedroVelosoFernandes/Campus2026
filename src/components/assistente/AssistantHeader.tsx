@@ -1,6 +1,6 @@
 import { RotateCcw } from 'lucide-react-native';
 import { memo, useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -10,7 +10,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
+import { useFontScale } from '@/features/settings';
 import { colors, fontFamily, screenPadding, spacing, typography } from '@/theme';
 
 import { AssistantOrb } from './AssistantOrb';
@@ -42,6 +44,10 @@ export type AssistantHeaderProps = {
  */
 function AssistantHeaderBase({ copy, speaking, compact, onRetry }: AssistantHeaderProps) {
   const reduceMotion = useReducedMotion();
+  // As alturas fixas das linhas acompanham o tamanho do texto escolhido em Acessibilidade.
+  const fontScale = useFontScale();
+  const titleLine = Math.round(TITLE_LINE * fontScale);
+  const subtitleLine = Math.round(SUBTITLE_LINE * fontScale);
   const progress = useSharedValue(compact ? 1 : 0);
 
   useEffect(() => {
@@ -57,10 +63,10 @@ function AssistantHeaderBase({ copy, speaking, compact, onRetry }: AssistantHead
   }));
   const titleStyle = useAnimatedStyle(() => {
     const scale = interpolate(progress.get(), [0, 1], [1, TITLE_COMPACT_SCALE]);
-    return { height: TITLE_LINE * scale, transform: [{ scale }] };
+    return { height: titleLine * scale, transform: [{ scale }] };
   });
   const subtitleStyle = useAnimatedStyle(() => ({
-    height: interpolate(progress.get(), [0, 0.6], [SUBTITLE_LINE, 0], 'clamp'),
+    height: interpolate(progress.get(), [0, 0.6], [subtitleLine, 0], 'clamp'),
     opacity: interpolate(progress.get(), [0, 0.45], [1, 0], 'clamp'),
     marginTop: interpolate(progress.get(), [0, 0.6], [spacing.sm, 0], 'clamp'),
   }));
@@ -78,16 +84,16 @@ function AssistantHeaderBase({ copy, speaking, compact, onRetry }: AssistantHead
 
       <Animated.View style={[styles.status, statusStyle]} accessibilityLiveRegion="polite">
         <Animated.View style={[styles.titleBox, titleStyle]}>
-          <View style={styles.titleLine}>
-            <Text style={styles.title} numberOfLines={1} accessibilityRole="header">
+          <View style={[styles.titleLine, { height: titleLine }]}>
+            <AppText style={styles.title} numberOfLines={1} accessibilityRole="header">
               {copy.title}
-            </Text>
+            </AppText>
           </View>
         </Animated.View>
         <Animated.View style={[styles.subtitleBox, subtitleStyle]}>
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <AppText style={styles.subtitle} numberOfLines={1}>
             {copy.subtitle}
-          </Text>
+          </AppText>
         </Animated.View>
         {onRetry ? (
           <Button label="Tentar de novo" icon={RotateCcw} variant="secondary" onPress={onRetry} style={styles.retry} />
@@ -107,7 +113,6 @@ const styles = StyleSheet.create({
   titleLine: { height: TITLE_LINE, justifyContent: 'center' },
   title: { fontFamily: fontFamily.bold, fontSize: 24, lineHeight: TITLE_LINE, color: colors.textHeading, textAlign: 'center' },
   subtitleBox: { overflow: 'hidden', justifyContent: 'center' },
-  subtitle: { ...typography.body, fontSize: 15.5, lineHeight: SUBTITLE_LINE,
-    height: SUBTITLE_LINE, color: colors.textSecondary, textAlign: 'center' },
+  subtitle: { ...typography.body, fontSize: 15.5, lineHeight: SUBTITLE_LINE, color: colors.textSecondary, textAlign: 'center' },
   retry: { marginTop: spacing.md, alignSelf: 'stretch' },
 });

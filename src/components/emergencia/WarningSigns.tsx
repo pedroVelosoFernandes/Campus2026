@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { colors, radii, spacing, typography } from '@/theme';
 
 import { WARNING_SIGNS } from './contacts';
@@ -9,15 +10,15 @@ import { WARNING_SIGNS } from './contacts';
 function WarningSignsBase() {
   return (
     <View style={styles.box}>
-      <Text style={styles.title} accessibilityRole="header">
+      <AppText style={styles.title} accessibilityRole="header">
         Sinais de alerta
-      </Text>
-      <Text style={styles.lead}>Se você ou alguém perto tiver algum destes sinais, ligue 192 agora:</Text>
+      </AppText>
+      <AppText style={styles.lead}>Se você ou alguém perto tiver algum destes sinais, ligue 192 agora:</AppText>
       <View style={styles.list}>
         {WARNING_SIGNS.map((sign) => (
           <View key={sign} style={styles.item}>
             <View style={styles.bullet} />
-            <Text style={styles.sign}>{sign}</Text>
+            <AppText style={styles.sign}>{sign}</AppText>
           </View>
         ))}
       </View>

@@ -46,7 +46,7 @@ describe('Tela "Como você quer cuidar da saúde?"', () => {
   it('"Estou com sintomas" abre Conversas com o tema de sintomas', async () => {
     await render(<CuidarSaudeScreen />);
     await fireEvent.press(screen.getByRole('button', { name: /^Estou com sintomas/ }));
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/conversas?topic=sintomas');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/conversas/chat?topic=sintomas');
     expect(mockedRouter.push).not.toHaveBeenCalled();
   });
 

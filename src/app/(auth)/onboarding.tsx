@@ -1,10 +1,11 @@
 import * as Haptics from 'expo-haptics';
 import { Redirect, router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { PressableScale } from '@/components/PressableScale';
 import { ConsentCheckbox } from '@/components/onboarding/ConsentCheckbox';
@@ -40,10 +41,10 @@ function Slide({ art, title, body, children }: { art: ReactNode; title: string; 
     <View style={styles.slide}>
       <View style={styles.art}>{art}</View>
       <View style={styles.texts}>
-        <Text style={styles.title} accessibilityRole="header">
+        <AppText style={styles.title} accessibilityRole="header">
           {title}
-        </Text>
-        <Text style={styles.body}>{body}</Text>
+        </AppText>
+        <AppText style={styles.body}>{body}</AppText>
       </View>
       {children}
     </View>
@@ -60,11 +61,11 @@ function ConsentBlock({ accepted, onChange }: { accepted: boolean; onChange: (va
       />
       <View style={styles.links}>
         <PressableScale onPress={() => openLegalDocument('termos')} accessibilityRole="link" style={styles.link}>
-          <Text style={styles.linkText}>Termos de uso</Text>
+          <AppText style={styles.linkText}>Termos de uso</AppText>
         </PressableScale>
-        <Text style={styles.linkDot}>·</Text>
+        <AppText style={styles.linkDot}>·</AppText>
         <PressableScale onPress={() => openLegalDocument('privacidade')} accessibilityRole="link" style={styles.link}>
-          <Text style={styles.linkText}>Política de privacidade</Text>
+          <AppText style={styles.linkText}>Política de privacidade</AppText>
         </PressableScale>
       </View>
     </View>
@@ -91,11 +92,14 @@ export default function OnboardingScreen() {
 
   if (onboardingDone && !accepted) return <Redirect href="/" />;
 
-  const pages = SLIDES.map((slide, index) => (
-    <Slide key={slide.title} art={slide.art} title={slide.title} body={slide.body}>
-      {index === LAST ? <ConsentBlock accepted={accepted} onChange={setAccepted} /> : null}
-    </Slide>
-  ));
+  const pages = SLIDES.map((slide, index) => ({
+    key: slide.title,
+    content: (
+      <Slide art={slide.art} title={slide.title} body={slide.body}>
+        {index === LAST ? <ConsentBlock accepted={accepted} onChange={setAccepted} /> : null}
+      </Slide>
+    ),
+  }));
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -106,7 +110,7 @@ export default function OnboardingScreen() {
             accessibilityLabel="Pular apresentação"
             accessibilityHint="Vai para o aceite dos termos"
             style={styles.skip}>
-            <Text style={styles.skipText}>Pular</Text>
+            <AppText style={styles.skipText}>Pular</AppText>
           </PressableScale>
         )}
       </View>

@@ -1,10 +1,11 @@
 import { ChevronRight, ExternalLink, type LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { PressableScale } from '@/components/PressableScale';
-import { useContrastColors, useScaledTypography } from '@/features/settings';
-import { colors, spacing } from '@/theme';
+import { useContrastColors } from '@/features/settings';
+import { colors, spacing, typography } from '@/theme';
 
 export type ToggleRowProps = {
   icon: LucideIcon;
@@ -21,7 +22,6 @@ export type ToggleRowProps = {
  * elemento "switch" para o leitor de tela); o Switch é só visual.
  */
 function ToggleRowBase({ icon: Icon, label, detail, value, onValueChange, disabled, testID }: ToggleRowProps) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   return (
     <PressableScale
@@ -36,8 +36,8 @@ function ToggleRowBase({ icon: Icon, label, detail, value, onValueChange, disabl
       style={styles.row}>
       <Icon size={22} color={colors.primary} strokeWidth={1.6} />
       <View style={styles.texts}>
-        <Text style={[type.bodyMedium, { color: palette.textHeading }]}>{label}</Text>
-        {detail ? <Text style={[type.caption, { color: palette.textSecondary }]}>{detail}</Text> : null}
+        <AppText style={[typography.bodyMedium, { color: palette.textHeading }]}>{label}</AppText>
+        {detail ? <AppText style={[typography.caption, { color: palette.textSecondary }]}>{detail}</AppText> : null}
       </View>
       <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <Switch
@@ -77,7 +77,6 @@ function ActionRowBase({
   accessibilityHint,
   testID,
 }: ActionRowProps) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   const danger = tone === 'danger';
   const tint = danger ? colors.dangerPressed : colors.primary;
@@ -92,8 +91,8 @@ function ActionRowBase({
       style={styles.row}>
       <Icon size={22} color={tint} strokeWidth={1.6} />
       <View style={styles.texts}>
-        <Text style={[type.bodyMedium, { color: danger ? colors.dangerPressed : palette.textHeading }]}>{label}</Text>
-        {detail ? <Text style={[type.caption, { color: palette.textSecondary }]}>{detail}</Text> : null}
+        <AppText style={[typography.bodyMedium, { color: danger ? colors.dangerPressed : palette.textHeading }]}>{label}</AppText>
+        {detail ? <AppText style={[typography.caption, { color: palette.textSecondary }]}>{detail}</AppText> : null}
       </View>
       {trailing === 'chevron' ? <ChevronRight size={20} color={palette.textMuted} strokeWidth={1.75} /> : null}
       {trailing === 'external' ? <ExternalLink size={18} color={palette.textMuted} strokeWidth={1.75} /> : null}
@@ -111,14 +110,13 @@ export type InfoRowProps = {
 
 /** Linha só informativa (sem toque), ex.: "O que tratamos" na tela de privacidade. */
 function InfoRowBase({ icon: Icon, label, detail }: InfoRowProps) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   return (
     <View style={[styles.row, styles.top]} accessible accessibilityLabel={`${label}. ${detail}`}>
       <Icon size={22} color={colors.primary} strokeWidth={1.6} style={styles.iconTop} />
       <View style={styles.texts}>
-        <Text style={[type.bodyMedium, { color: palette.textHeading }]}>{label}</Text>
-        <Text style={[type.caption, { color: palette.textSecondary }]}>{detail}</Text>
+        <AppText style={[typography.bodyMedium, { color: palette.textHeading }]}>{label}</AppText>
+        <AppText style={[typography.caption, { color: palette.textSecondary }]}>{detail}</AppText>
       </View>
     </View>
   );

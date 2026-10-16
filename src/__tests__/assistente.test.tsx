@@ -100,7 +100,7 @@ describe('Tela Assistente', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: /Teclado/ }));
     expect(assistant.stop).toHaveBeenCalled();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/conversas');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/conversas/chat');
   });
 
   it('a sugestão leva à tela indicada', async () => {
@@ -123,6 +123,18 @@ describe('Tela Assistente', () => {
     expect(screen.getByText('Ligue 192 (SAMU) agora')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Ligar para o SAMU, 192' }));
     expect(openURL).toHaveBeenCalledWith('tel:192');
+  });
+
+  it('em emergência, leva aos outros contatos encerrando a voz', async () => {
+    const assistant = voice({
+      suggestedAction: { kind: 'cuidar-saude', emergency: true, label: 'Ligue 192 (SAMU) agora' },
+    });
+    mockedHook.mockReturnValue(assistant);
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver outros contatos de emergência' }));
+    expect(assistant.stop).toHaveBeenCalled();
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/emergencia');
   });
 
   it('em erro, mostra mensagem amigável e tenta de novo', async () => {

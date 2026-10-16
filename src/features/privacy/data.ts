@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Share } from 'react-native';
 
+import { HEALTH_CARD_KEY } from '@/features/settings/health-card';
+
 /**
  * Chaves do SecureStore criadas pelo app (o SecureStore não lista chaves).
  * Quem gravar algo lá deve registrar a chave para que "Apagar meus dados"
@@ -10,6 +12,8 @@ import { Share } from 'react-native';
 const secureStoreKeys = new Set<string>([
   // Sessão de login (src/features/auth/session-client.ts → SESSION_KEY).
   'alo-saude.session',
+  // Cartão SUS digitado no Perfil.
+  HEALTH_CARD_KEY,
 ]);
 
 export function registerSecureStoreKey(key: string): void {

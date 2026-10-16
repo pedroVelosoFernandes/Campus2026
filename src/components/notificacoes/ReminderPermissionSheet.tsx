@@ -1,8 +1,9 @@
 import { BellRing } from 'lucide-react-native';
 import { memo } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { IconTile } from '@/components/IconTile';
 import { colors, radii, spacing, typography } from '@/theme';
@@ -25,13 +26,13 @@ function ReminderPermissionSheetBase({ visible, onAllow, onClose }: ReminderPerm
           accessibilityViewIsModal>
           <View style={styles.grabber} />
           <IconTile icon={BellRing} size={56} />
-          <Text style={styles.title} accessibilityRole="header">
+          <AppText style={styles.title} accessibilityRole="header">
             Quer um lembrete da vacina?
-          </Text>
-          <Text style={styles.text}>
+          </AppText>
+          <AppText style={styles.text}>
             Avisamos amanhã às 9h, quando a UBS já está aberta. Para isso, o celular vai pedir permissão
             para o Alô Saúde enviar notificações. Você pode mudar isso quando quiser nos Ajustes.
-          </Text>
+          </AppText>
           <View style={styles.actions}>
             <Button label="Permitir lembretes" onPress={onAllow} />
             <Button label="Agora não" variant="secondary" onPress={onClose} />

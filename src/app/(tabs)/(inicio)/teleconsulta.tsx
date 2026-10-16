@@ -1,9 +1,10 @@
 import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
 import { ExternalLink } from 'lucide-react-native';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { InfoNote } from '@/components/InfoNote';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -36,10 +37,10 @@ export default function TeleconsultaScreen() {
         </View>
 
         <View style={styles.intro}>
-          <Text style={styles.title} accessibilityRole="header">
+          <AppText style={styles.title} accessibilityRole="header">
             Continue no canal do SUS
-          </Text>
-          <Text style={styles.body}>Consulte os serviços digitais disponíveis na sua região.</Text>
+          </AppText>
+          <AppText style={styles.body}>Consulte os serviços digitais disponíveis na sua região.</AppText>
         </View>
 
         <InfoNote message="Você será direcionado para um serviço externo." style={styles.note} />

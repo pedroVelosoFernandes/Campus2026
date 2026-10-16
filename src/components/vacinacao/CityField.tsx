@@ -1,6 +1,8 @@
 import { memo } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
+import { AppTextInput } from '@/components/AppTextInput';
 import { colors, fontFamily, radii, spacing, typography } from '@/theme';
 
 export type CityFieldProps = {
@@ -14,7 +16,7 @@ export type CityFieldProps = {
 function CityFieldBase({ value, onChangeText, onSubmit, error }: CityFieldProps) {
   return (
     <View style={styles.wrap}>
-      <TextInput
+      <AppTextInput
         value={value}
         onChangeText={onChangeText}
         onSubmitEditing={onSubmit}
@@ -29,9 +31,9 @@ function CityFieldBase({ value, onChangeText, onSubmit, error }: CityFieldProps)
         style={[styles.input, error ? styles.inputError : null]}
       />
       {error ? (
-        <Text style={styles.error} accessibilityLiveRegion="polite">
+        <AppText style={styles.error} accessibilityLiveRegion="polite">
           {error}
-        </Text>
+        </AppText>
       ) : null}
     </View>
   );
@@ -53,5 +55,5 @@ const styles = StyleSheet.create({
     color: colors.textHeading,
   },
   inputError: { borderColor: colors.danger },
-  error: { ...typography.caption, fontSize: 13, color: colors.danger },
+  error: { ...typography.caption, fontSize: 13, color: colors.dangerText },
 });

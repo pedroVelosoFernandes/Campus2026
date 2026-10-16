@@ -43,6 +43,8 @@ export const colors = {
   info: '#2581CA',
 
   danger: '#E8605C',
+  /** Texto de erro/ação destrutiva: o `danger` escurecido para 5:1 sobre branco e menta (WCAG AA). */
+  dangerText: '#BF3F3C',
   dangerPressed: '#C94D4F',
   notification: '#E5524E',
 

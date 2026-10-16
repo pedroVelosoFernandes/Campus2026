@@ -1,5 +1,5 @@
 import { memo, useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   FadeInDown,
@@ -14,6 +14,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
+import { AppText } from '@/components/AppText';
 import { Avatar } from '@/components/Avatar';
 import { colors, radii, spacing, typography } from '@/theme';
 
@@ -79,7 +80,7 @@ function TranscriptBubbleBase({ variant, text }: TranscriptBubbleProps) {
       accessibilityLabel={`${isUser ? 'Você' : 'Assistente'}${live ? ' (falando agora)' : ''}: ${text}`}>
       <Avatar kind={isUser ? 'user' : 'assistant'} size={44} />
       <Animated.View testID={`bubble-${variant}`} style={[styles.bubble, BUBBLE[variant], borderStyle]}>
-        <Text style={styles.text}>{text}</Text>
+        <AppText style={styles.text}>{text}</AppText>
         {live ? (
           <View style={styles.dots}>
             {[0, 1, 2].map((i) => (

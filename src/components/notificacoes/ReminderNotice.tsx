@@ -13,12 +13,21 @@ const COPY: Record<Exclude<Notice, null>, { title: string; message: string }> = 
     message: 'Sem problema: as novidades continuam aqui. Para receber lembretes, ative nos Ajustes.',
   },
   failed: { title: 'Não deu para agendar agora', message: 'Tente de novo em instantes.' },
+  disabled: {
+    title: 'Lembretes de vacinas desligados',
+    message: 'Você desligou esses lembretes nas preferências de notificação. Ative para agendar.',
+  },
 };
 
-export type ReminderNoticeProps = { notice: Notice; onOpenSettings: () => void };
+export type ReminderNoticeProps = {
+  notice: Notice;
+  onOpenSettings: () => void;
+  /** Abre Perfil > Notificações (preferências do app). */
+  onOpenPreferences?: () => void;
+};
 
 /** Retorno do fluxo de lembrete (agendado, negado ou falhou). */
-function ReminderNoticeBase({ notice, onOpenSettings }: ReminderNoticeProps) {
+function ReminderNoticeBase({ notice, onOpenSettings, onOpenPreferences }: ReminderNoticeProps) {
   if (!notice) return null;
   const { title, message } = COPY[notice];
   return (
@@ -26,6 +35,9 @@ function ReminderNoticeBase({ notice, onOpenSettings }: ReminderNoticeProps) {
       <InfoNote title={title} message={message} />
       {notice === 'denied' ? (
         <Button label="Abrir Ajustes" variant="outline" onPress={onOpenSettings} />
+      ) : null}
+      {notice === 'disabled' && onOpenPreferences ? (
+        <Button label="Abrir preferências" variant="outline" onPress={onOpenPreferences} />
       ) : null}
     </View>
   );

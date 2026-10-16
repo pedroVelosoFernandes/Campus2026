@@ -1,9 +1,11 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { useContrastColors, useFontScale } from '@/features/settings';
 import { colors, fontFamily, radii, shadows, spacing, typography } from '@/theme';
 
+import { AppText } from './AppText';
 import { IconTile } from './IconTile';
 import { PressableScale } from './PressableScale';
 
@@ -17,22 +19,25 @@ export type ShortcutCardProps = {
 
 /** Cartão compacto da grade 2×2 da tela inicial: ícone, título e subtítulo. */
 function ShortcutCardBase({ icon, title, subtitle, onPress, testID }: ShortcutCardProps) {
+  const palette = useContrastColors();
+  // Com texto grande o título quebra em duas linhas em vez de encolher.
+  const titleLines = useFontScale() > 1.15 ? 2 : 1;
   return (
     <PressableScale
       onPress={onPress}
       testID={testID}
       accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
       containerStyle={styles.container}
-      style={styles.card}>
-      <IconTile icon={icon} size={46} />
+      style={[styles.card, { borderColor: palette.border }]}>
+      <IconTile icon={icon} size={36} />
       <View style={styles.texts}>
-        <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+        <AppText style={styles.title} numberOfLines={titleLines} adjustsFontSizeToFit={titleLines === 1} minimumFontScale={0.85}>
           {title}
-        </Text>
+        </AppText>
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={2}>
+          <AppText style={styles.subtitle} numberOfLines={titleLines + 1}>
             {subtitle}
-          </Text>
+          </AppText>
         ) : null}
       </View>
     </PressableScale>
@@ -45,9 +50,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   card: {
     flex: 1,
-    gap: spacing.md,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    gap: spacing.sm + 2,
+    paddingVertical: spacing.md + 2,
+    paddingHorizontal: spacing.md + 2,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -55,7 +60,7 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   texts: { gap: spacing.xxs },
-  title: { ...typography.bodyMedium, fontFamily: fontFamily.semibold, color: colors.textHeading },
+  title: { ...typography.bodyMedium, fontFamily: fontFamily.semibold, lineHeight: 21, color: colors.textHeading },
   // Reserva duas linhas: os quatro cartões ficam com a mesma altura.
-  subtitle: { ...typography.caption, fontSize: 13.5, lineHeight: 18, minHeight: 36, color: colors.textSecondary },
+  subtitle: { ...typography.caption, fontSize: 13.5, lineHeight: 17, minHeight: 34, color: colors.textSecondary },
 });

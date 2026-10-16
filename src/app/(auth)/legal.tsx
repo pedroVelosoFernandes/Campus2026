@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { LEGAL_CONTENT } from '@/components/auth/legal-content';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, radii, screenPadding, spacing, typography } from '@/theme';
@@ -18,14 +19,14 @@ export default function LegalScreen() {
     <SafeAreaView style={styles.safe}>
       <ScreenHeader onBack={goBack} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title} accessibilityRole="header">
+        <AppText style={styles.title} accessibilityRole="header">
           {content.title}
-        </Text>
+        </AppText>
         <View style={styles.card}>
           {content.sections.map((section, index) => (
             <View key={section.heading} style={[styles.section, index > 0 && styles.divider]}>
-              <Text style={styles.heading}>{section.heading}</Text>
-              <Text style={styles.text}>{section.text}</Text>
+              <AppText style={styles.heading}>{section.heading}</AppText>
+              <AppText style={styles.text}>{section.text}</AppText>
             </View>
           ))}
         </View>

@@ -1,13 +1,16 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { useEffect, type ReactElement } from 'react';
-import { Linking } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { Alert, Linking, type AlertButton } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AjudaScreen from '@/app/(tabs)/perfil/ajuda';
 import PerfilScreen from '@/app/(tabs)/perfil/index';
 import UnidadeReferenciaScreen from '@/app/(tabs)/perfil/unidade';
+import { AuthProvider, createMemoryStore, createSessionClient } from '@/features/auth';
 import { DEFAULT_SETTINGS, useSettings, type Settings } from '@/features/settings';
+import { resetHealthCardStoreForTests } from '@/features/settings/health-card';
 import { SettingsProvider } from '@/features/settings/SettingsProvider';
 
 jest.mock('expo-router', () => ({
@@ -33,21 +36,39 @@ function SettingsSpy() {
   return null;
 }
 
-const renderWithSettings = (ui: ReactElement, settings: Settings = DEFAULT_SETTINGS) =>
+type AccountMode = 'guest' | 'signedIn';
+
+function authFor(mode: AccountMode) {
+  const record =
+    mode === 'guest'
+      ? { mode: 'guest' }
+      : { mode: 'demo', user: { id: 'demo', phoneMasked: '(11) •••••-4321', demo: true } };
+  const sessionClient = createSessionClient({ store: createMemoryStore({ 'alo-saude.session': JSON.stringify(record) }) });
+  const preferences = createMemoryStore({
+    'alo-saude.onboarding': JSON.stringify({ consentVersion: 1, acceptedAt: '2026-10-01T00:00:00.000Z' }),
+  });
+  return { sessionClient, preferences };
+}
+
+const renderWithSettings = (ui: ReactElement, settings: Settings = DEFAULT_SETTINGS, account: AccountMode = 'guest') =>
   render(
     <SafeAreaProvider initialMetrics={METRICS}>
       <SettingsProvider initialSettings={settings}>
-        {ui}
-        <SettingsSpy />
+        <AuthProvider {...authFor(account)}>
+          {ui}
+          <SettingsSpy />
+        </AuthProvider>
       </SettingsProvider>
     </SafeAreaProvider>,
   );
 
 const mockedRouter = jest.mocked(router);
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks();
   latest = DEFAULT_SETTINGS;
+  resetHealthCardStoreForTests();
+  await SecureStore.deleteItemAsync('alo-saude.cns');
 });
 
 describe('Perfil', () => {
@@ -74,6 +95,64 @@ describe('Perfil', () => {
     });
     expect(screen.getByText('Lembretes de vacinas e campanhas')).toBeTruthy();
     expect(screen.getByText('UBS Vila Nova')).toBeTruthy();
+  });
+});
+
+describe('Perfil: conta, nome e Cartão SUS', () => {
+  it('convidado vê "Entrar com celular", que abre o login', async () => {
+    await renderWithSettings(<PerfilScreen />);
+    expect(await screen.findByText('Você está como convidado')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Entrar com celular' }));
+    expect(mockedRouter.push).toHaveBeenCalledWith('/login');
+  });
+
+  it('logado vê o celular mascarado e sai só depois de confirmar', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await renderWithSettings(<PerfilScreen />, DEFAULT_SETTINGS, 'signedIn');
+    expect(await screen.findByText('Conta conectada')).toBeTruthy();
+    expect(screen.getByText('(11) •••••-4321')).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sair' }));
+    const buttons = alert.mock.calls[0][2] as AlertButton[];
+    expect(buttons.map((button) => button.text)).toEqual(['Cancelar', 'Sair']);
+    await act(async () => buttons[1].onPress?.());
+    expect(await screen.findByText('Você está como convidado')).toBeTruthy();
+  });
+
+  it('sem nome convida a informar; o nome salvo aparece e pode ser editado', async () => {
+    await renderWithSettings(<PerfilScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Como podemos te chamar?' }));
+    await fireEvent.changeText(screen.getByLabelText('Seu nome'), '  Maria   Clara ');
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+    expect(latest.profile).toEqual({ name: 'Maria Clara', namePromptDone: true });
+    expect(screen.getByText('Maria Clara')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Editar nome' })).toBeTruthy();
+  });
+
+  it('Cartão SUS: vazio → valida → salva no SecureStore e mostra mascarado', async () => {
+    await renderWithSettings(<PerfilScreen />);
+    await fireEvent.press(await screen.findByRole('button', { name: /^Adicionar Cartão SUS/ }));
+    const field = screen.getByLabelText('Número do Cartão SUS');
+
+    await fireEvent.changeText(field, '898001234567890');
+    expect(screen.getByDisplayValue('898 0012 3456 7890')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+    expect(screen.getByText(/não confere/)).toBeTruthy();
+
+    await fireEvent.changeText(field, '898001234567891');
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('••• •••• •••• 7891')).toBeTruthy();
+    expect(await SecureStore.getItemAsync('alo-saude.cns')).toBe('898001234567891');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Mostrar número' }));
+    expect(screen.getByText('898 0012 3456 7891')).toBeTruthy();
+  });
+
+  it('não mostra mais o cartão fictício nem nomes fixos', async () => {
+    await renderWithSettings(<PerfilScreen />);
+    await waitFor(() => expect(screen.getByText('Olá!')).toBeTruthy());
+    expect(screen.queryByText(/Ana/)).toBeNull();
+    expect(screen.queryByText('700 0000 0000 0000')).toBeNull();
   });
 });
 

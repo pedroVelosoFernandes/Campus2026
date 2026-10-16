@@ -2,9 +2,10 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { MessageSquareText } from 'lucide-react-native';
 import { useState } from 'react';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { InfoNote } from '@/components/InfoNote';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -27,8 +28,7 @@ export default function LoginScreen() {
     if (!valid || sending) return;
     setSending(true);
     setError(null);
-    const result = await requestCode(phone);
-    setSending(false);
+    const result = await requestCode(phone).finally(() => setSending(false));
     if (!result.ok) {
       setError(result.error);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
@@ -54,20 +54,20 @@ export default function LoginScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator={false}>
           <View style={styles.intro}>
-            <Text style={styles.title} accessibilityRole="header">
+            <AppText style={styles.title} accessibilityRole="header">
               Entre com seu celular
-            </Text>
-            <Text style={styles.subtitle}>
+            </AppText>
+            <AppText style={styles.subtitle}>
               Com uma conta, você guarda seu histórico de conversas e seu perfil. Enviamos um código por SMS.
-            </Text>
+            </AppText>
           </View>
 
           <View style={styles.form}>
             <PhoneInput value={phone} onChangeText={changePhone} onSubmitEditing={send} invalid={!!error} />
             {error ? (
-              <Text style={styles.error} accessibilityRole="alert">
+              <AppText style={styles.error} accessibilityRole="alert">
                 {error}
-              </Text>
+              </AppText>
             ) : null}
             <Button
               label={sending ? 'Enviando…' : 'Receber código por SMS'}

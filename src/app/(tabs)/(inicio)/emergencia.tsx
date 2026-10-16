@@ -1,8 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { callNumber, EMERGENCY_CONTACTS } from '@/components/emergencia/contacts';
 import { EmergencyCallCard } from '@/components/emergencia/EmergencyCallCard';
 import { WarningSigns } from '@/components/emergencia/WarningSigns';
@@ -27,10 +28,10 @@ export default function EmergenciaScreen() {
       <ScreenHeader title="Emergência" onBack={goBack} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.intro}>
-          <Text style={styles.title} accessibilityRole="header">
+          <AppText style={styles.title} accessibilityRole="header">
             Precisa de ajuda agora?
-          </Text>
-          <Text style={styles.subtitle}>Ligação gratuita, de qualquer telefone. SAMU, Bombeiros e CVV atendem 24 horas.</Text>
+          </AppText>
+          <AppText style={styles.subtitle}>Ligação gratuita, de qualquer telefone. SAMU, Bombeiros e CVV atendem 24 horas.</AppText>
         </View>
 
         <View style={styles.cards}>

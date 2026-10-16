@@ -9,6 +9,7 @@ import { isAssistantSpeaking, statusCopy } from '@/components/assistente/status-
 import { SuggestionCard } from '@/components/assistente/SuggestionCard';
 import { TranscriptList } from '@/components/assistente/TranscriptList';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useConversationRecorder } from '@/features/history';
 import { useVoiceAssistant } from '@/features/voice';
 import { colors, spacing } from '@/theme';
 
@@ -21,6 +22,8 @@ export default function AssistenteScreen() {
   // Insets do provider raiz: o SafeAreaView nativo não os recebe dentro do fullScreenModal.
   const insets = useSafeAreaInsets();
   const { state, transcript, muted, error, suggestedAction, start, stop, mute } = useVoiceAssistant();
+  // Com o consentimento ligado, a transcrição vai para o histórico (aba Conversas).
+  useConversationRecorder({ channel: 'voz', transcript, suggestedAction });
 
   // A conversa começa ao abrir a tela e termina ao sair dela.
   useEffect(() => {
@@ -35,7 +38,7 @@ export default function AssistenteScreen() {
 
   const openKeyboard = useCallback(() => {
     stop();
-    router.navigate('/conversas');
+    router.navigate('/conversas/chat');
   }, [stop]);
 
   const toggleMic = useCallback(() => {

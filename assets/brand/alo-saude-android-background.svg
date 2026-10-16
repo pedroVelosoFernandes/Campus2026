@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Fundo do ícone adaptativo Android. -->
+  <defs><radialGradient id="glow" cx="0.3" cy="0.18" r="1"><stop offset="0" stop-color="#2A8F93"/><stop offset="0.6" stop-color="#136A73"/><stop offset="1" stop-color="#0E5C66"/></radialGradient></defs><rect width="1024" height="1024" fill="url(#glow)"/>
+</svg>

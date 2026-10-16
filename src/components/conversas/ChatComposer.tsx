@@ -1,6 +1,6 @@
 import { Info, Mic, SendHorizontal } from 'lucide-react-native';
 import { memo, useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   ReduceMotion,
   interpolate,
@@ -9,6 +9,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { AppText } from '@/components/AppText';
+import { AppTextInput } from '@/components/AppTextInput';
 import { PressableScale } from '@/components/PressableScale';
 import { colors, fontFamily, radii, spacing, typography } from '@/theme';
 
@@ -69,7 +71,7 @@ function ChatComposerBase({ onSend, onMicPress, disabled }: ChatComposerProps) {
   return (
     <View style={styles.container}>
       <View style={styles.field}>
-        <TextInput
+        <AppTextInput
           value={text}
           onChangeText={setText}
           placeholder="Escreva ou envie um áudio"
@@ -86,7 +88,7 @@ function ChatComposerBase({ onSend, onMicPress, disabled }: ChatComposerProps) {
       </View>
       <View style={styles.disclaimer} accessible accessibilityRole="text">
         <Info size={16} color={colors.textMuted} strokeWidth={1.75} />
-        <Text style={styles.disclaimerText}>Orientação não substitui avaliação médica.</Text>
+        <AppText style={styles.disclaimerText}>Orientação não substitui avaliação médica.</AppText>
       </View>
     </View>
   );

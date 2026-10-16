@@ -1,9 +1,11 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { useContrastColors } from '@/features/settings';
 import { colors, radii, spacing, typography } from '@/theme';
 
+import { AppText } from './AppText';
 import { PressableScale } from './PressableScale';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline';
@@ -42,6 +44,9 @@ function ButtonBase({
   style,
 }: ButtonProps) {
   const palette = VARIANTS[variant];
+  const contrast = useContrastColors();
+  // No alto contraste as bordas dos botões claros escurecem (contorno ≥ 3:1).
+  const border = variant === 'primary' ? palette.border : variant === 'secondary' ? contrast.border : contrast.borderStrong;
   const isPrimary = variant === 'primary';
 
   return (
@@ -54,15 +59,15 @@ function ButtonBase({
       style={[
         styles.base,
         isPrimary ? styles.primaryHeight : styles.secondaryHeight,
-        { backgroundColor: palette.background, borderColor: palette.border },
+        { backgroundColor: palette.background, borderColor: border },
         disabled && styles.disabled,
         style,
       ]}>
       <View style={styles.content}>
         {Icon ? <Icon size={22} color={palette.icon} fill={iconFilled ? palette.icon : 'none'} strokeWidth={1.75} /> : null}
-        <Text style={[isPrimary ? styles.primaryLabel : styles.secondaryLabel, { color: palette.text }]}>
+        <AppText style={[isPrimary ? styles.primaryLabel : styles.secondaryLabel, { color: palette.text }]}>
           {label}
-        </Text>
+        </AppText>
       </View>
     </PressableScale>
   );

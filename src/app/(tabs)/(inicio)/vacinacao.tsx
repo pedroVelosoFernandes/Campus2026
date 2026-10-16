@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { InfoNote } from '@/components/InfoNote';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import {
@@ -67,9 +68,9 @@ export default function VacinacaoScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScreenHeader title="Onde buscar atendimento" onBack={goBack} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title} accessibilityRole="header">
+        <AppText style={styles.title} accessibilityRole="header">
           {copy.title}
-        </Text>
+        </AppText>
 
         <UnitMap
           coordinates={selectedCoords ?? origin}
@@ -99,7 +100,7 @@ export default function VacinacaoScreen() {
 
         <View style={styles.below}>
           <InfoNote title={copy.noteTitle} message={copy.noteMessage} />
-          {nearby.card === 'unit' ? <Text style={styles.notice}>{compactNotice}</Text> : null}
+          {nearby.card === 'unit' ? <AppText style={styles.notice}>{compactNotice}</AppText> : null}
         </View>
       </ScrollView>
 

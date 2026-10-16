@@ -1,11 +1,12 @@
 import { Building2, Check, Clock, MapPin } from 'lucide-react-native';
 import { memo, useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
 import { GestureDetector, GestureHandlerRootView, Pressable, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { AppText } from '@/components/AppText';
 import { IconTile } from '@/components/IconTile';
 import { PressableScale } from '@/components/PressableScale';
 import { colors, radii, spacing, typography } from '@/theme';
@@ -43,17 +44,17 @@ function UnitRow({ unit, selected, onPress }: { unit: UnitMatch; selected: boole
       style={[styles.row, selected && styles.rowSelected]}>
       <IconTile icon={Building2} size={44} />
       <View style={styles.rowTexts}>
-        <Text style={styles.rowName}>{name}</Text>
-        <Text style={styles.rowKind}>{kind}</Text>
+        <AppText style={styles.rowName}>{name}</AppText>
+        <AppText style={styles.rowKind}>{kind}</AppText>
         {unit.address ? (
           <View style={styles.meta}>
             <MapPin size={14} color={colors.textMuted} strokeWidth={1.75} />
-            <Text style={styles.metaText}>{unit.address}</Text>
+            <AppText style={styles.metaText}>{unit.address}</AppText>
           </View>
         ) : null}
         <View style={styles.meta}>
           <Clock size={14} color={colors.textMuted} strokeWidth={1.75} />
-          <Text style={styles.metaText}>{unit.hours}</Text>
+          <AppText style={styles.metaText}>{unit.hours}</AppText>
         </View>
       </View>
       {selected ? <Check size={20} color={colors.primary} strokeWidth={2.25} /> : null}
@@ -117,9 +118,9 @@ function UnitsSheetBase({
             style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }, sheetStyle]}
             accessibilityViewIsModal>
             <View style={styles.handle} />
-            <Text style={styles.title} accessibilityRole="header">
+            <AppText style={styles.title} accessibilityRole="header">
               {title}
-            </Text>
+            </AppText>
             <View style={styles.list}>
               {units.map((unit) => (
                 <UnitRow
@@ -130,7 +131,7 @@ function UnitsSheetBase({
                 />
               ))}
             </View>
-            <Text style={styles.notice}>{notice}</Text>
+            <AppText style={styles.notice}>{notice}</AppText>
           </Animated.View>
         </GestureDetector>
       </GestureHandlerRootView>

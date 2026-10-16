@@ -1,11 +1,12 @@
 import { ChevronDown } from 'lucide-react-native';
 import { memo, useEffect, useState, type ReactNode } from 'react';
-import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { AppText } from '@/components/AppText';
 import { PressableScale } from '@/components/PressableScale';
-import { useContrastColors, useScaledTypography } from '@/features/settings';
-import { colors, spacing } from '@/theme';
+import { useContrastColors } from '@/features/settings';
+import { colors, spacing, typography } from '@/theme';
 
 export type FaqItemProps = {
   question: string;
@@ -24,7 +25,6 @@ const TIMING = { duration: 240, reduceMotion: ReduceMotion.System } as const;
  * e animada pelo Reanimated (some sem animação com "Reduzir animações").
  */
 function FaqItemBase({ question, answer, expanded, onToggle, footer, testID }: FaqItemProps) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   const [contentHeight, setContentHeight] = useState(0);
   const progress = useSharedValue(expanded ? 1 : 0);
@@ -48,7 +48,7 @@ function FaqItemBase({ question, answer, expanded, onToggle, footer, testID }: F
         accessibilityState={{ expanded }}
         accessibilityHint={expanded ? 'Toque para recolher a resposta' : 'Toque para ver a resposta'}
         style={styles.header}>
-        <Text style={[type.bodyMedium, styles.question, { color: palette.textHeading }]}>{question}</Text>
+        <AppText style={[typography.bodyMedium, styles.question, { color: palette.textHeading }]}>{question}</AppText>
         <Animated.View style={chevronStyle}>
           <ChevronDown size={20} color={palette.textMuted} strokeWidth={1.75} />
         </Animated.View>
@@ -58,7 +58,7 @@ function FaqItemBase({ question, answer, expanded, onToggle, footer, testID }: F
         accessibilityElementsHidden={!expanded}
         importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}>
         <View style={styles.measure} onLayout={onMeasure}>
-          <Text style={[type.body, { color: palette.textBody }]}>{answer}</Text>
+          <AppText style={[typography.body, { color: palette.textBody }]}>{answer}</AppText>
           {footer}
         </View>
       </Animated.View>

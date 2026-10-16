@@ -1,8 +1,25 @@
+import type { SavedMessage } from '@/features/history/types';
 import type { SuggestedAction, TranscriptMessage, VoiceStatus } from '@/features/voice';
 
 /** Regras puras da tela de conversa (sem React), testáveis isoladamente. */
 
-export type ChatMessage = { id: string; role: 'assistant' | 'user'; text: string; final: boolean };
+export type ChatMessage = {
+  id: string;
+  role: 'assistant' | 'user';
+  text: string;
+  final: boolean;
+  kind?: 'message';
+  /** Fala de uma conversa salva, exibida ao continuar (sem animação de entrada). */
+  prior?: boolean;
+};
+
+/** Linha da lista do chat: balão ou o divisor "Conversa retomada". */
+export type ChatRow = ChatMessage | { id: string; kind: 'divider' };
+
+/** Falas de uma conversa salva, já no formato de balão. */
+export function priorChatMessages(messages: readonly SavedMessage[]): ChatMessage[] {
+  return messages.map((message, index) => ({ id: `prior_${index}`, ...message, final: true, prior: true }));
+}
 
 export const SYMPTOMS_GREETING = 'O que você está sentindo e há quanto tempo?';
 export const DEFAULT_GREETING = 'Olá! Como posso ajudar você hoje?';

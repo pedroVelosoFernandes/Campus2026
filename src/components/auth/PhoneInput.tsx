@@ -1,6 +1,8 @@
 import { memo, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
+import { AppTextInput } from '@/components/AppTextInput';
 import { formatBrPhone } from '@/features/auth/phone';
 import { colors, radii, spacing, typography } from '@/theme';
 
@@ -16,14 +18,14 @@ function PhoneInputBase({ value, onChangeText, onSubmitEditing, invalid }: Phone
   const [focused, setFocused] = useState(false);
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label} nativeID="phone-label">
+      <AppText style={styles.label} nativeID="phone-label">
         Celular com DDD
-      </Text>
+      </AppText>
       <View style={[styles.field, focused && styles.fieldFocused, invalid && styles.fieldInvalid]}>
         <View style={styles.prefix}>
-          <Text style={styles.prefixText}>+55</Text>
+          <AppText style={styles.prefixText}>+55</AppText>
         </View>
-        <TextInput
+        <AppTextInput
           value={value}
           onChangeText={(text) => onChangeText(formatBrPhone(text))}
           onFocus={() => setFocused(true)}

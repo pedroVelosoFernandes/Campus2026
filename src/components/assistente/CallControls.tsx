@@ -1,7 +1,8 @@
 import { Keyboard, Mic, MicOff, Phone, type LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { PressableScale } from '@/components/PressableScale';
 import { colors, fontFamily, spacing } from '@/theme';
 
@@ -36,7 +37,7 @@ function Control({ icon: Icon, label, accessibilityLabel, onPress, size, backgro
           style={iconRotation ? { transform: [{ rotate: iconRotation }] } : undefined}
         />
       </View>
-      <Text style={styles.label}>{label}</Text>
+      <AppText style={styles.label}>{label}</AppText>
     </PressableScale>
   );
 }

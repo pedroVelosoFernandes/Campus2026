@@ -1,7 +1,8 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { memo, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { IconTile } from '@/components/IconTile';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
@@ -29,10 +30,10 @@ function StatusCardBase({ icon, title, message, primary, secondary, children }: 
       <View style={styles.header} accessible accessibilityLabel={`${title}. ${message}`}>
         <IconTile icon={icon} size={60} />
         <View style={styles.texts}>
-          <Text style={styles.title} accessibilityRole="header">
+          <AppText style={styles.title} accessibilityRole="header">
             {title}
-          </Text>
-          <Text style={styles.message}>{message}</Text>
+          </AppText>
+          <AppText style={styles.message}>{message}</AppText>
         </View>
       </View>
       {children}

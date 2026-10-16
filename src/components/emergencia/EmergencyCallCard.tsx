@@ -1,7 +1,8 @@
 import { Phone } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { PressableScale } from '@/components/PressableScale';
 import { colors, fontFamily, radii, shadows, spacing, typography } from '@/theme';
 
@@ -29,10 +30,10 @@ function EmergencyCallCardBase({ contact, onCall }: EmergencyCallCardProps) {
       style={[styles.card, urgent && styles.cardUrgent]}>
       <View style={styles.texts}>
         <View style={styles.heading}>
-          <Text style={[styles.number, urgent && styles.numberUrgent]}>{number}</Text>
-          <Text style={styles.name}>{name}</Text>
+          <AppText style={[styles.number, urgent && styles.numberUrgent]}>{number}</AppText>
+          <AppText style={styles.name}>{name}</AppText>
         </View>
-        <Text style={styles.description}>{description}</Text>
+        <AppText style={styles.description}>{description}</AppText>
       </View>
       <View style={[styles.call, urgent && styles.callUrgent]}>
         <Phone size={24} color={colors.onPrimary} strokeWidth={1.9} />

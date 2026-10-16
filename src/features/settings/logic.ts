@@ -1,6 +1,7 @@
 import {
   DEFAULT_SETTINGS,
   FONT_SCALE_STEPS,
+  MAX_NAME_LENGTH,
   type FontScale,
   type Settings,
   type SettingsPatch,
@@ -19,6 +20,23 @@ function pickBooleans<T extends Record<string, boolean>>(defaults: T, raw: unkno
     if (typeof value === 'boolean') result[key] = value as T[keyof T];
   }
   return result;
+}
+
+/** Limpa o nome digitado: espaços repetidos, bordas e tamanho máximo. */
+export function sanitizeName(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value.replace(/\s+/g, ' ').trim().slice(0, MAX_NAME_LENGTH).trim();
+}
+
+/** Primeiro nome para a saudação ("Maria Clara Souza" → "Maria"). */
+export function firstName(name: string): string {
+  return sanitizeName(name).split(' ')[0] ?? '';
+}
+
+/** "Olá, Maria" ou "Olá!" quando a pessoa não informou nome. */
+export function greeting(name: string): string {
+  const first = firstName(name);
+  return first ? `Olá, ${first}` : 'Olá!';
 }
 
 /** Aproxima qualquer número para o degrau válido mais próximo. */
@@ -48,8 +66,14 @@ export function sanitizeSettings(raw: unknown): Settings {
       ? source.referenceUnitId
       : DEFAULT_SETTINGS.referenceUnitId;
 
+  const profileRaw = isObject(source.profile) ? source.profile : {};
+
   return {
     version: 1,
+    profile: {
+      name: sanitizeName(profileRaw.name),
+      namePromptDone: typeof profileRaw.namePromptDone === 'boolean' ? profileRaw.namePromptDone : false,
+    },
     notifications: pickBooleans(DEFAULT_SETTINGS.notifications, source.notifications),
     accessibility: {
       ...pickBooleans(a11yToggles, a11yRaw),
@@ -65,6 +89,7 @@ export function applyPatch(settings: Settings, patch: SettingsPatch): Settings {
   return sanitizeSettings({
     ...settings,
     referenceUnitId: patch.referenceUnitId ?? settings.referenceUnitId,
+    profile: { ...settings.profile, ...patch.profile },
     notifications: { ...settings.notifications, ...patch.notifications },
     accessibility: { ...settings.accessibility, ...patch.accessibility },
     privacy: { ...settings.privacy, ...patch.privacy },

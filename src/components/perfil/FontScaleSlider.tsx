@@ -1,8 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { memo, useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View, type AccessibilityActionEvent, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View, type AccessibilityActionEvent, type LayoutChangeEvent } from 'react-native';
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
+import { AppText } from '@/components/AppText';
 import { PressableScale } from '@/components/PressableScale';
 import { FONT_SCALE_LABELS, FONT_SCALE_STEPS, stepFontScale, type FontScale } from '@/features/settings';
 import { colors, fontFamily, radii, spacing } from '@/theme';
@@ -94,7 +95,7 @@ function FontScaleSliderBase({ value, onChange }: FontScaleSliderProps) {
         disabled={index === 0}
         accessibilityLabel="Diminuir texto"
         style={styles.side}>
-        <Text style={[styles.letter, styles.small, index === 0 && styles.muted]}>A</Text>
+        <AppText style={[styles.letter, styles.small, index === 0 && styles.muted]}>A</AppText>
       </PressableScale>
 
       <View
@@ -114,7 +115,7 @@ function FontScaleSliderBase({ value, onChange }: FontScaleSliderProps) {
         disabled={index === LAST}
         accessibilityLabel="Aumentar texto"
         style={styles.side}>
-        <Text style={[styles.letter, styles.large, index === LAST && styles.muted]}>A</Text>
+        <AppText style={[styles.letter, styles.large, index === LAST && styles.muted]}>A</AppText>
       </PressableScale>
     </View>
   );

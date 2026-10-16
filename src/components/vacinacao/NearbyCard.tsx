@@ -34,8 +34,7 @@ function CityPrompt({ location }: { location: DeviceLocationState }) {
   const submit = useCallback(async () => {
     if (!text.trim() || busy) return;
     setBusy(true);
-    const ok = await location.submitCity(text);
-    setBusy(false);
+    const ok = await location.submitCity(text).finally(() => setBusy(false));
     setError(ok ? null : 'Não entendi a cidade. Escreva como "Campinas, SP".');
   }, [busy, location, text]);
   const message = location.denied

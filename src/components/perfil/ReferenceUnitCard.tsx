@@ -1,12 +1,13 @@
 import { ArrowLeftRight, Building2, Clock, MapPin, Navigation, Phone, type LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { IconTile } from '@/components/IconTile';
-import { useContrastColors, useScaledTypography } from '@/features/settings';
+import { useContrastColors } from '@/features/settings';
 import type { UnitMatch } from '@/services/health-units';
-import { colors, fontFamily, radii, spacing } from '@/theme';
+import { colors, fontFamily, radii, spacing, typography } from '@/theme';
 
 import { displayName, formatDistance, serviceNames } from './reference-unit';
 
@@ -18,19 +19,17 @@ export type ReferenceUnitCardProps = {
 };
 
 function Detail({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   return (
     <View style={styles.detail}>
       <Icon size={18} color={colors.primary} strokeWidth={1.7} style={styles.detailIcon} />
-      <Text style={[type.body, styles.flex, { color: palette.textBody }]}>{text}</Text>
+      <AppText style={[typography.body, styles.flex, { color: palette.textBody }]}>{text}</AppText>
     </View>
   );
 }
 
 /** Cartão menta da UBS de referência: endereço, horário, serviços e ações. */
 function ReferenceUnitCardBase({ unit, onDirections, onChange, directionsDisabled }: ReferenceUnitCardProps) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   const distance = formatDistance(unit.distanceKm);
   const kind = distance ? `${unit.type} · ${distance} de casa` : unit.type;
@@ -40,10 +39,10 @@ function ReferenceUnitCardBase({ unit, onDirections, onChange, directionsDisable
       <View style={styles.head}>
         <IconTile icon={Building2} size={52} />
         <View style={styles.flex}>
-          <Text style={[type.headline, { color: palette.textHeading }]} accessibilityRole="header">
+          <AppText style={[typography.headline, { color: palette.textHeading }]} accessibilityRole="header">
             {displayName(unit.name)}
-          </Text>
-          <Text style={[type.caption, { color: palette.textSecondary }]}>{kind}</Text>
+          </AppText>
+          <AppText style={[typography.caption, { color: palette.textSecondary }]}>{kind}</AppText>
         </View>
       </View>
 
@@ -56,7 +55,7 @@ function ReferenceUnitCardBase({ unit, onDirections, onChange, directionsDisable
       <View style={styles.chips} accessibilityLabel={`Serviços: ${serviceNames(unit.services).join(', ')}`}>
         {serviceNames(unit.services).map((name) => (
           <View key={name} style={styles.chip}>
-            <Text style={[type.caption, styles.chipText]}>{name}</Text>
+            <AppText style={[typography.caption, styles.chipText]}>{name}</AppText>
           </View>
         ))}
       </View>

@@ -1,9 +1,10 @@
 import { createContext, useContext, useMemo } from 'react';
-import type { TextStyle } from 'react-native';
+import type { StyleProp, TextStyle } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { colors, typography } from '@/theme';
 
+import { resolveTextStyle } from './text-style';
 import { DEFAULT_SETTINGS, type Settings, type SettingsPatch } from './types';
 
 export type SettingsContextValue = {
@@ -54,9 +55,8 @@ export function scaleTypography<T extends Record<string, TextStyle>>(base: T, sc
 }
 
 /**
- * Tipografia do tema já escalada pela preferência do usuário. Opt-in: use no
- * lugar de `typography` em componentes com bastante texto, ex.:
- * `const type = useScaledTypography(); <Text style={[styles.text, type.body]} />`.
+ * Tipografia do tema já escalada pela preferência do usuário. Para textos use o
+ * `AppText` (que já escala); isto serve para medidas que dependem do texto.
  */
 export function useScaledTypography(): TypographyMap {
   const scale = useFontScale();
@@ -73,13 +73,18 @@ export function useHighContrast(): boolean {
   return useContext(SettingsContext).settings.accessibility.highContrast;
 }
 
-/** Tons mais escuros para textos secundários e bordas no modo de alto contraste. */
+/**
+ * Tons do alto contraste: textos com pelo menos 4,5:1 e bordas com pelo menos
+ * 3:1 sobre o branco (WCAG AA para texto e para contornos de componentes).
+ */
 export const HIGH_CONTRAST_OVERRIDES = {
   textBody: colors.textHeading,
   textSecondary: '#2F3644',
   textMuted: '#4A5160',
-  border: colors.borderStrong,
-  borderStrong: '#9AA6AF',
+  tabInactive: '#3F4450',
+  border: '#7D8993',
+  borderStrong: '#5F6B75',
+  info: '#1A64A0',
 } as const;
 
 export type AppColors = { [K in keyof typeof colors]: string };
@@ -88,6 +93,16 @@ export type AppColors = { [K in keyof typeof colors]: string };
 export function useContrastColors(): AppColors {
   const high = useHighContrast();
   return useMemo(() => (high ? { ...colors, ...HIGH_CONTRAST_OVERRIDES } : colors), [high]);
+}
+
+/**
+ * Estilo de texto com o tamanho e o contraste escolhidos em Acessibilidade.
+ * O `AppText` já usa; chame direto só em campos (`TextInput`).
+ */
+export function useAccessibleTextStyle(style: StyleProp<TextStyle>): StyleProp<TextStyle> {
+  const scale = useFontScale();
+  const high = useHighContrast();
+  return useMemo(() => resolveTextStyle(style, scale, high), [style, scale, high]);
 }
 
 export function useReadAloud(): boolean {

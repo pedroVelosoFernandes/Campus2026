@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, spacing, typography } from '@/theme';
 
+import { AppText } from './AppText';
 import { ScreenHeader } from './ScreenHeader';
 
 export type PlaceholderScreenProps = {
@@ -23,9 +24,9 @@ export function PlaceholderScreen({ title, showBack = true }: PlaceholderScreenP
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScreenHeader onBack={showBack ? goBack : undefined} />
       <View style={styles.center}>
-        <Text accessibilityRole="header" style={styles.title}>
+        <AppText accessibilityRole="header" style={styles.title}>
           {title}
-        </Text>
+        </AppText>
       </View>
     </SafeAreaView>
   );

@@ -1,23 +1,23 @@
 import { CirclePause, Contrast, Volume2 } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
+import { AppText } from '@/components/AppText';
 import { FontScaleSlider } from '@/components/perfil/FontScaleSlider';
 import { ToggleRow } from '@/components/perfil/rows';
 import { SettingsGroup } from '@/components/perfil/SettingsGroup';
 import { SubScreen } from '@/components/perfil/SubScreen';
-import { FONT_SCALE_LABELS, useContrastColors, useScaledTypography, useSettings } from '@/features/settings';
-import { colors, radii, spacing } from '@/theme';
+import { FONT_SCALE_LABELS, useContrastColors, useSettings } from '@/features/settings';
+import { colors, radii, spacing, typography } from '@/theme';
 
 function TextSizePreview() {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   return (
     <View style={[styles.preview, { borderColor: palette.border }]} testID="font-preview">
-      <Text style={[type.headline, { color: palette.textHeading }]}>Vacina da gripe</Text>
-      <Text style={[type.body, { color: palette.textBody }]}>
+      <AppText style={[typography.headline, { color: palette.textHeading }]}>Vacina da gripe</AppText>
+      <AppText style={[typography.body, { color: palette.textBody }]}>
         Procure a sala de vacina da sua UBS com documento com foto e a caderneta de vacinação.
-      </Text>
+      </AppText>
     </View>
   );
 }
@@ -25,19 +25,18 @@ function TextSizePreview() {
 export default function AcessibilidadeScreen() {
   const { settings, update } = useSettings();
   const systemReducesMotion = useReducedMotion();
-  const type = useScaledTypography();
   const palette = useContrastColors();
   const a11y = settings.accessibility;
 
   return (
     <SubScreen title="Acessibilidade" intro="Ajuste o app para ler e ouvir com mais conforto.">
-      <SettingsGroup title="Tamanho do texto" footer="Vale para as telas do app que já se adaptam ao novo tamanho.">
+      <SettingsGroup title="Tamanho do texto" footer="Vale para todas as telas do app.">
         <View style={styles.sizeBox}>
           <TextSizePreview />
           <FontScaleSlider value={a11y.fontScale} onChange={(fontScale) => update({ accessibility: { fontScale } })} />
-          <Text style={[type.caption, styles.sizeLabel, { color: palette.textSecondary }]} accessibilityElementsHidden>
+          <AppText style={[typography.caption, styles.sizeLabel, { color: palette.textSecondary }]} accessibilityElementsHidden>
             {FONT_SCALE_LABELS[a11y.fontScale]}
-          </Text>
+          </AppText>
         </View>
       </SettingsGroup>
 

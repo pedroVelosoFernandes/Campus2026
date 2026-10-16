@@ -15,7 +15,7 @@ export type CareOption = {
 const go = (href: Href) => () => router.push(href);
 
 /** Conversas é outra aba: navigate reaproveita a pilha existente. */
-const openSymptoms = () => router.navigate('/conversas?topic=sintomas');
+const openSymptoms = () => router.navigate('/conversas/chat?topic=sintomas');
 
 export const CARE_OPTIONS: readonly CareOption[] = [
   {

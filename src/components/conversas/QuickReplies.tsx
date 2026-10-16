@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 
+import { AppText } from '@/components/AppText';
 import { PressableScale } from '@/components/PressableScale';
 import { colors, radii, spacing, typography } from '@/theme';
 
@@ -28,7 +29,7 @@ function QuickRepliesBase({ options = DEFAULT_OPTIONS, onSelect }: QuickRepliesP
           containerStyle={styles.flex}
           style={styles.chip}>
           <View>
-            <Text style={styles.label}>{option}</Text>
+            <AppText style={styles.label}>{option}</AppText>
           </View>
         </PressableScale>
       ))}

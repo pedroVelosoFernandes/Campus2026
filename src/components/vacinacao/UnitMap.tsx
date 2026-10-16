@@ -1,8 +1,9 @@
 import { Building2 } from 'lucide-react-native';
 import { memo, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polygon, type Region } from 'react-native-maps';
 
+import { AppText } from '@/components/AppText';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme';
 
 import type { Coordinates } from '@/services/health-units';
@@ -48,7 +49,7 @@ function UnitPin({ label }: { label: string }) {
     <View style={styles.pinWrap} pointerEvents="none">
       <View style={styles.callout}>
         <Building2 size={14} color={colors.primary} strokeWidth={2} />
-        <Text style={styles.calloutText}>{label}</Text>
+        <AppText style={styles.calloutText}>{label}</AppText>
       </View>
       <View style={styles.calloutTail} />
       <View style={styles.pin}>

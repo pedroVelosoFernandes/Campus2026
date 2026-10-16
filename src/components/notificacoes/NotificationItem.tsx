@@ -1,7 +1,8 @@
 import { BellPlus, BellRing, Building2, CalendarDays, Syringe, X, type LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { IconTile } from '@/components/IconTile';
 import { PressableScale } from '@/components/PressableScale';
 import type { NotificationView } from '@/features/notifications';
@@ -36,9 +37,9 @@ function ReminderPill({ active, onPress }: { active: boolean; onPress: () => voi
       containerStyle={styles.pillContainer}
       style={[styles.pill, active && styles.pillActive]}>
       <Icon size={18} color={active ? colors.onPrimary : colors.primary} strokeWidth={1.9} />
-      <Text style={[styles.pillLabel, active && styles.pillLabelActive]}>
+      <AppText style={[styles.pillLabel, active && styles.pillLabelActive]}>
         {active ? 'Lembrete amanhã, 9h' : 'Lembrar da vacina'}
-      </Text>
+      </AppText>
     </PressableScale>
   );
 }
@@ -60,10 +61,10 @@ function NotificationItemBase({ item, onRead, onDismiss, onToggleReminder }: Not
           <View style={styles.texts}>
             <View style={styles.titleRow}>
               {item.read ? null : <View style={styles.dot} />}
-              <Text style={[styles.title, item.read && styles.titleRead]}>{item.title}</Text>
+              <AppText style={[styles.title, item.read && styles.titleRead]}>{item.title}</AppText>
             </View>
-            <Text style={styles.body}>{item.body}</Text>
-            <Text style={styles.when}>{item.when}</Text>
+            <AppText style={styles.body}>{item.body}</AppText>
+            <AppText style={styles.when}>{item.when}</AppText>
           </View>
         </PressableScale>
         <PressableScale

@@ -15,8 +15,10 @@ const SNAP = { duration: 320, reduceMotion: ReduceMotion.System } as const;
 const SWIPE_DISTANCE = 0.22;
 const SWIPE_VELOCITY = 500;
 
+export type OnboardingPage = { key: string; content: ReactNode };
+
 export type OnboardingPagerProps = {
-  pages: ReactNode[];
+  pages: OnboardingPage[];
   page: number;
   onPageChange: (page: number) => void;
   /** Recebe a posição contínua (para os pontos de paginação). */
@@ -65,9 +67,9 @@ function OnboardingPagerBase({ pages, page, onPageChange, progress }: Onboarding
     <GestureDetector gesture={pan}>
       <View style={styles.viewport}>
         <Animated.View style={[styles.row, { width: width * pages.length }, rowStyle]}>
-          {pages.map((content, index) => (
+          {pages.map(({ key, content }, index) => (
             <View
-              key={index}
+              key={key}
               style={{ width }}
               importantForAccessibility={index === page ? 'auto' : 'no-hide-descendants'}
               accessibilityElementsHidden={index !== page}>

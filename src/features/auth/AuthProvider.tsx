@@ -5,7 +5,7 @@ import { getSessionClient } from './api-fetch';
 import { readAuthEnv } from './config';
 import { createOtpClient, type OtpClient, type RequestCodeResult } from './otp-client';
 import type { SessionClient } from './session-client';
-import { preferencesStore, readOnboardingDone, saveOnboardingDone } from './storage';
+import { ONBOARDING_KEY, preferencesStore, readOnboardingDone, saveOnboardingDone } from './storage';
 import type { AuthStatus, AuthUser, KeyValueStore } from './types';
 
 export interface AuthContextValue {
@@ -23,6 +23,11 @@ export interface AuthContextValue {
   signOut: () => Promise<void>;
   continueAsGuest: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  /**
+   * Volta ao primeiro uso (usado por "Apagar meus dados"): sai da conta, apaga a
+   * sessão e o aceite dos termos; as guardas de rota levam ao onboarding.
+   */
+  resetToFirstUse: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -86,6 +91,10 @@ export function AuthProvider({ children, sessionClient, otpClient, preferences =
       async completeOnboarding() {
         await saveOnboardingDone(preferences);
         setState((prev) => ({ ...prev, onboardingDone: true }));
+      },
+      async resetToFirstUse() {
+        await Promise.all([session.clear(), preferences.removeItem(ONBOARDING_KEY)]);
+        setState({ status: 'signedOut', user: null, onboardingDone: false });
       },
     }),
     [state, env.apiUrl, otp, session, preferences],

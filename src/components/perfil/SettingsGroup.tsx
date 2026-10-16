@@ -1,8 +1,9 @@
 import { Children, Fragment, isValidElement, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { useContrastColors, useScaledTypography } from '@/features/settings';
-import { colors, fontFamily, radii, shadows, spacing } from '@/theme';
+import { AppText } from '@/components/AppText';
+import { useContrastColors } from '@/features/settings';
+import { colors, fontFamily, radii, shadows, spacing, typography } from '@/theme';
 
 export type SettingsGroupProps = {
   title?: string;
@@ -15,15 +16,14 @@ export type SettingsGroupProps = {
 
 /** Cartão branco com borda fina e divisórias entre as linhas, como a lista do Perfil. */
 export function SettingsGroup({ title, footer, children, dividerInset = 54 }: SettingsGroupProps) {
-  const type = useScaledTypography();
   const palette = useContrastColors();
   const items = Children.toArray(children).filter(isValidElement);
   return (
     <View style={styles.group}>
       {title ? (
-        <Text style={[type.caption, styles.title, { color: palette.textSecondary }]} accessibilityRole="header">
+        <AppText style={[typography.caption, styles.title, { color: palette.textSecondary }]} accessibilityRole="header">
           {title}
-        </Text>
+        </AppText>
       ) : null}
       <View style={[styles.card, { borderColor: palette.border }]}>
         {items.map((item, index) => (
@@ -34,7 +34,7 @@ export function SettingsGroup({ title, footer, children, dividerInset = 54 }: Se
           </Fragment>
         ))}
       </View>
-      {footer ? <Text style={[type.caption, styles.footer, { color: palette.textMuted }]}>{footer}</Text> : null}
+      {footer ? <AppText style={[typography.caption, styles.footer, { color: palette.textMuted }]}>{footer}</AppText> : null}
     </View>
   );
 }

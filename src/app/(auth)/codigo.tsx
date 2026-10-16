@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { InfoNote } from '@/components/InfoNote';
 import { PressableScale } from '@/components/PressableScale';
@@ -19,16 +20,16 @@ function ResendRow({ remaining, onResend }: { remaining: number; onResend: () =>
   return (
     <View style={styles.links}>
       {remaining > 0 ? (
-        <Text style={styles.wait} accessibilityLiveRegion="polite">
+        <AppText style={styles.wait} accessibilityLiveRegion="polite">
           Reenviar código em {formatCountdown(remaining)}
-        </Text>
+        </AppText>
       ) : (
         <PressableScale onPress={onResend} style={styles.link}>
-          <Text style={styles.linkText}>Reenviar código</Text>
+          <AppText style={styles.linkText}>Reenviar código</AppText>
         </PressableScale>
       )}
       <PressableScale onPress={backToLogin} style={styles.link}>
-        <Text style={styles.linkText}>Trocar número</Text>
+        <AppText style={styles.linkText}>Trocar número</AppText>
       </PressableScale>
     </View>
   );
@@ -55,19 +56,19 @@ export default function CodigoScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator={false}>
           <View style={styles.intro}>
-            <Text style={styles.title} accessibilityRole="header">
+            <AppText style={styles.title} accessibilityRole="header">
               Digite o código
-            </Text>
-            <Text style={styles.subtitle}>
-              Enviamos um SMS com 6 números para <Text style={styles.phone}>{formatBrPhone(pending.phone).replace(" ", "\u00A0")}</Text>.
-            </Text>
+            </AppText>
+            <AppText style={styles.subtitle}>
+              Enviamos um SMS com 6 números para <AppText style={styles.phone}>{formatBrPhone(pending.phone).replace(" ", "\u00A0")}</AppText>.
+            </AppText>
           </View>
 
           <OtpInput value={code} onChange={changeCode} onComplete={confirm} invalid={!!error} />
           {error ? (
-            <Text style={styles.error} accessibilityRole="alert">
+            <AppText style={styles.error} accessibilityRole="alert">
               {error}
-            </Text>
+            </AppText>
           ) : null}
 
           {pending.hint ? <InfoNote message={pending.hint} /> : null}

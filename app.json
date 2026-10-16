@@ -8,7 +8,7 @@
     "scheme": "alosaude",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.pedrokarasas.alo-saude",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "O Alô Saúde usa o microfone para você conversar por voz com o assistente de saúde.",

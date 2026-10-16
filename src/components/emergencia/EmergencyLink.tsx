@@ -1,7 +1,8 @@
 import { ChevronRight, Phone } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { PressableScale } from '@/components/PressableScale';
 import { colors, fontFamily, spacing, typography } from '@/theme';
 
@@ -18,9 +19,9 @@ function EmergencyLinkBase({ onPress }: EmergencyLinkProps) {
       containerStyle={styles.container}
       style={styles.row}>
       <Phone size={16} color={colors.textSecondary} strokeWidth={1.9} />
-      <Text style={styles.text}>
-        Emergência? <Text style={styles.strong}>Ligue 192</Text>
-      </Text>
+      <AppText style={styles.text}>
+        Emergência? <AppText style={styles.strong}>Ligue 192</AppText>
+      </AppText>
       <ChevronRight size={16} color={colors.textSecondary} strokeWidth={1.9} />
     </PressableScale>
   );

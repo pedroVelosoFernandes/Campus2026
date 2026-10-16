@@ -1,9 +1,10 @@
 import { ChevronLeft } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { colors, spacing, typography } from '@/theme';
 
+import { AppText } from './AppText';
 import { PressableScale } from './PressableScale';
 
 export type ScreenHeaderProps = {
@@ -34,12 +35,14 @@ function ScreenHeaderBase({ title, titleAlign = 'center', onBack, backLabel = 'V
         <View style={styles.back} />
       )}
       {title ? (
-        <Text
+        <AppText
           accessibilityRole="header"
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
           style={[styles.title, centered ? styles.titleCenter : styles.titleLeft]}>
           {title}
-        </Text>
+        </AppText>
       ) : (
         <View style={styles.flex} />
       )}

@@ -1,9 +1,10 @@
 import { Info } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { useContrastColors, useScaledSize, useScaledTypography } from '@/features/settings';
-import { colors, radii, spacing } from '@/theme';
+import { useContrastColors, useHighContrast } from '@/features/settings';
+import { colors, radii, spacing, typography } from '@/theme';
+import { AppText } from './AppText';
 
 export type InfoNoteProps = {
   /** Linha em destaque (ex.: "Antes de sair"). */
@@ -14,19 +15,18 @@ export type InfoNoteProps = {
 
 /** Faixa informativa azul-clara com ícone "i" (telas de vacinação e teleconsulta). */
 function InfoNoteBase({ title, message, style }: InfoNoteProps) {
-  const type = useScaledTypography();
-  const size = useScaledSize();
   const palette = useContrastColors();
+  const highContrast = useHighContrast();
   return (
-    <View style={[styles.box, style]} accessibilityRole="text">
+    <View style={[styles.box, highContrast && { borderWidth: 1, borderColor: palette.info }, style]} accessibilityRole="text">
       <View style={styles.icon}>
         <Info size={16} color={colors.onPrimary} strokeWidth={2.25} />
       </View>
       <View style={styles.texts}>
         {title ? (
-          <Text style={[type.bodyMedium, { fontSize: size(15), color: palette.textHeading }]}>{title}</Text>
+          <AppText style={[typography.bodyMedium, { fontSize: 15, color: palette.textHeading }]}>{title}</AppText>
         ) : null}
-        <Text style={[type.caption, { color: palette.textSecondary }]}>{message}</Text>
+        <AppText style={[typography.caption, { color: palette.textSecondary }]}>{message}</AppText>
       </View>
     </View>
   );

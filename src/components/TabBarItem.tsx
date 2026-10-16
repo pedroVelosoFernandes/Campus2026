@@ -1,9 +1,11 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { useContrastColors } from '@/features/settings';
 import { colors, spacing, typography } from '@/theme';
 
+import { AppText } from './AppText';
 import { PressableScale } from './PressableScale';
 
 export type TabBarItemProps = {
@@ -18,7 +20,8 @@ export type TabBarItemProps = {
 };
 
 function TabBarItemBase({ label, icon: Icon, focused, onPress, onLongPress, index, count, testID }: TabBarItemProps) {
-  const color = focused ? colors.primary : colors.tabInactive;
+  const palette = useContrastColors();
+  const color = focused ? colors.primary : palette.tabInactive;
   return (
     <PressableScale
       onPress={onPress}
@@ -36,7 +39,7 @@ function TabBarItemBase({ label, icon: Icon, focused, onPress, onLongPress, inde
         fill={focused ? colors.primary : 'transparent'}
         strokeWidth={1.75}
       />
-      <Text style={[styles.label, { color }, focused && styles.labelFocused]}>{label}</Text>
+      <AppText style={[styles.label, { color }, focused && styles.labelFocused]}>{label}</AppText>
     </PressableScale>
   );
 }

@@ -7,7 +7,7 @@ import { colors } from '@/theme';
 
 const TABS: readonly TabBarTab[] = [
   { key: '(inicio)', label: 'Início', icon: House, activeIcon: HouseFilled },
-  { key: 'conversas/index', label: 'Conversas', icon: MessageSquare },
+  { key: 'conversas', label: 'Conversas', icon: MessageSquare },
   { key: 'perfil', label: 'Perfil', icon: User },
 ];
 
@@ -40,7 +40,7 @@ export default function TabsLayout() {
       tabBar={(props) => <AppTabBar {...props} />}
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>
       <Tabs.Screen name="(inicio)" options={{ title: 'Início' }} />
-      <Tabs.Screen name="conversas/index" options={{ title: 'Conversas' }} />
+      <Tabs.Screen name="conversas" options={{ title: 'Conversas' }} />
       <Tabs.Screen name="perfil" options={{ title: 'Perfil' }} />
     </Tabs>
   );

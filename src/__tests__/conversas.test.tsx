@@ -2,13 +2,14 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Linking } from 'react-native';
 
-import ConversasScreen from '@/app/(tabs)/conversas/index';
+import ConversasScreen from '@/app/(tabs)/conversas/chat';
 import { isYesNoQuestion } from '@/components/conversas/chat-model';
 import { useTextAssistant, type TextAssistant } from '@/features/voice';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), navigate: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: jest.fn(() => ({})),
+  useIsFocused: jest.fn(() => true),
 }));
 
 jest.mock('@/features/voice', () => ({ useTextAssistant: jest.fn() }));
@@ -119,6 +120,8 @@ describe('Tela Conversas (Orientação de atendimento)', () => {
     await render(<ConversasScreen />);
     await fireEvent.press(screen.getByRole('button', { name: 'Ligar 192 (SAMU)' }));
     expect(openURL).toHaveBeenCalledWith('tel:192');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver outros contatos de emergência' }));
+    expect(mockedRouter.push).toHaveBeenCalledWith('/emergencia');
   });
 
   it('voltar sem histórico vai para o Início', async () => {

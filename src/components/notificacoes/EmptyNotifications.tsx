@@ -1,7 +1,8 @@
 import { BellOff } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { IconTile } from '@/components/IconTile';
 import { colors, spacing, typography } from '@/theme';
 
@@ -10,12 +11,12 @@ function EmptyNotificationsBase() {
   return (
     <View style={styles.box} testID="notificacoes-vazio">
       <IconTile icon={BellOff} size={72} />
-      <Text style={styles.title} accessibilityRole="header">
+      <AppText style={styles.title} accessibilityRole="header">
         Tudo em dia
-      </Text>
-      <Text style={styles.text}>
+      </AppText>
+      <AppText style={styles.text}>
         Campanhas de vacinação, lembretes de consulta e avisos da sua UBS aparecem aqui.
-      </Text>
+      </AppText>
     </View>
   );
 }

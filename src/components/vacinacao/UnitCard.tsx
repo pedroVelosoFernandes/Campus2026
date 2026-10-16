@@ -1,7 +1,8 @@
 import { Building2, Navigation } from 'lucide-react-native';
 import { memo } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/AppText';
 import { Button } from '@/components/Button';
 import { IconTile } from '@/components/IconTile';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
@@ -24,9 +25,9 @@ function UnitCardBase({ name, services, hint, onDirections, onOtherUnits, direct
         <View style={styles.header} accessible accessibilityLabel={`${name}. ${services}. ${hint}`}>
           <IconTile icon={Building2} size={60} />
           <View style={styles.texts}>
-            <Text style={styles.name}>{name}</Text>
-            <Text style={styles.line}>{services}</Text>
-            <Text style={styles.line}>{hint}</Text>
+            <AppText style={styles.name}>{name}</AppText>
+            <AppText style={styles.line}>{services}</AppText>
+            <AppText style={styles.line}>{hint}</AppText>
           </View>
         </View>
       ) : (

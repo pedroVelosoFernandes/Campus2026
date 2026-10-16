@@ -1,36 +1,48 @@
 import { Bell } from 'lucide-react-native';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { greeting } from '@/features/settings';
 import { colors, spacing, typography } from '@/theme';
 
+import { AppText } from './AppText';
 import { Avatar } from './Avatar';
 import { PressableScale } from './PressableScale';
 
 export type HomeHeaderProps = {
-  firstName: string;
+  /** Nome escolhido pela pessoa (vazio = "Olá!"). */
+  name: string;
+  /** Mostra o convite "Como podemos te chamar?" sob a saudação. */
+  onAskName?: () => void;
   hasNotifications?: boolean;
   /** Quantidade de não lidas (entra no rótulo de acessibilidade). */
   unreadCount?: number;
   onNotificationsPress?: () => void;
 };
 
-/** Saudação "Olá, Ana" com avatar e sino de notificações (ponto vermelho quando há novidades). */
+/** Saudação ("Olá, Maria" ou "Olá!") com avatar e sino de notificações (ponto vermelho quando há novidades). */
 function bellLabel(hasNotifications?: boolean, unreadCount?: number) {
   if (unreadCount === 1) return 'Notificações, 1 não lida';
   if (unreadCount && unreadCount > 1) return `Notificações, ${unreadCount} não lidas`;
   return hasNotifications ? 'Notificações, há novidades' : 'Notificações';
 }
 
-function HomeHeaderBase({ firstName, hasNotifications, unreadCount, onNotificationsPress }: HomeHeaderProps) {
+function HomeHeaderBase({ name, onAskName, hasNotifications, unreadCount, onNotificationsPress }: HomeHeaderProps) {
   const showDot = hasNotifications ?? (unreadCount ?? 0) > 0;
   return (
     <View style={styles.row}>
       <View style={styles.greeting}>
         <Avatar size={38} />
-        <Text style={styles.hello} accessibilityRole="header">
-          Olá, {firstName}
-        </Text>
+        <View style={styles.texts}>
+          <AppText style={styles.hello} accessibilityRole="header" numberOfLines={1}>
+            {greeting(name)}
+          </AppText>
+          {onAskName ? (
+            <PressableScale onPress={onAskName} accessibilityRole="button" hitSlop={10} pressedScale={0.97}>
+              <AppText style={styles.ask}>Como podemos te chamar?</AppText>
+            </PressableScale>
+          ) : null}
+        </View>
       </View>
       <PressableScale
         onPress={onNotificationsPress}
@@ -49,8 +61,10 @@ export const HomeHeader = memo(HomeHeaderBase);
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  greeting: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  greeting: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  texts: { flex: 1, alignItems: 'flex-start' },
   hello: { ...typography.bodyMedium, fontSize: 17, color: colors.textHeading },
+  ask: { ...typography.caption, fontFamily: typography.label.fontFamily, color: colors.primary },
   bell: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   dot: {
     position: 'absolute',
