@@ -34,7 +34,7 @@ function TabBarItemBase({ label, icon: Icon, focused, onPress, onLongPress, inde
         size={26}
         color={color}
         fill={focused ? colors.primary : 'transparent'}
-        strokeWidth={focused ? 1.75 : 1.5}
+        strokeWidth={1.75}
       />
       <Text style={[styles.label, { color }, focused && styles.labelFocused]}>{label}</Text>
     </PressableScale>

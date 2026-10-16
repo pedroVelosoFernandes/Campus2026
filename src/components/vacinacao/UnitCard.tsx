@@ -38,6 +38,7 @@ function UnitCardBase({ name, services, hint, onDirections, onOtherUnits, direct
         <Button
           label="Como chegar"
           icon={Navigation}
+          iconFilled
           onPress={onDirections}
           disabled={!name || directionsDisabled}
           accessibilityHint="Abre o app de mapas com a rota até a unidade"

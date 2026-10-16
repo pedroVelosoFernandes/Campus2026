@@ -106,5 +106,5 @@ const styles = StyleSheet.create({
   intro: { marginTop: spacing.lg, gap: spacing.sm, paddingHorizontal: spacing.xxs },
   title: { ...typography.display, color: colors.textHeading },
   subtitle: { ...typography.bodyLarge, color: colors.textSecondary },
-  options: { marginTop: spacing.xxl, gap: spacing.md },
+  options: { marginTop: spacing.xxl, gap: spacing.lg },
 });

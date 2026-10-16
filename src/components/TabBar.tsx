@@ -10,6 +10,8 @@ export type TabBarTab = {
   key: string;
   label: string;
   icon: LucideIcon;
+  /** Ícone da aba ativa (preenchido); padrão: o mesmo `icon` com preenchimento. */
+  activeIcon?: LucideIcon;
 };
 
 export type TabBarProps = {
@@ -33,7 +35,7 @@ function TabBarBase({ tabs, activeKey, onTabPress, onTabLongPress, bottomInset =
           <TabBarItem
             key={tab.key}
             label={tab.label}
-            icon={tab.icon}
+            icon={focused && tab.activeIcon ? tab.activeIcon : tab.icon}
             focused={focused}
             index={index}
             count={tabs.length}

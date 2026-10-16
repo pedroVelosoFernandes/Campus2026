@@ -14,6 +14,8 @@ export type ButtonProps = {
   /** primary: pílula teal preenchida; secondary: pílula menta; outline: branca com borda. */
   variant?: ButtonVariant;
   icon?: LucideIcon;
+  /** Preenche o ícone (ex.: seta de navegação sólida do "Como chegar"). */
+  iconFilled?: boolean;
   disabled?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -32,6 +34,7 @@ function ButtonBase({
   onPress,
   variant = 'primary',
   icon: Icon,
+  iconFilled,
   disabled,
   accessibilityLabel,
   accessibilityHint,
@@ -56,7 +59,7 @@ function ButtonBase({
         style,
       ]}>
       <View style={styles.content}>
-        {Icon ? <Icon size={22} color={palette.icon} strokeWidth={1.75} /> : null}
+        {Icon ? <Icon size={22} color={palette.icon} fill={iconFilled ? palette.icon : 'none'} strokeWidth={1.75} /> : null}
         <Text style={[isPrimary ? styles.primaryLabel : styles.secondaryLabel, { color: palette.text }]}>
           {label}
         </Text>

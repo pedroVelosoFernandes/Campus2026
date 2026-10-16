@@ -95,6 +95,9 @@ export function directionsUrl(coords: Coordinates, label: string): string {
 export const APPROXIMATE_LOCATION_NOTICE =
   'Sem acesso à sua localização, usamos um ponto aproximado do bairro. ' + OFFICIAL_CHANNELS_NOTICE;
 
+/** Versão de uma linha para a tela; o aviso completo fica na lista "Ver outras unidades". */
+export const COMPACT_LOCATION_NOTICE = 'Local aproximado. Confirme pelo Disque Saúde 136 antes de ir.';
+
 const defaultFinder = createLocalUnitFinder(MOCK_NEARBY_UNITS);
 
 export type NearbyUnitsState = {
@@ -102,6 +105,8 @@ export type NearbyUnitsState = {
   /** Ponto de origem usado na busca (hoje sempre o ponto aproximado de demonstração). */
   origin: Coordinates;
   notice: string;
+  /** Aviso curto exibido sob o cartão. */
+  compactNotice: string;
   loading: boolean;
 };
 
@@ -133,6 +138,7 @@ export function useNearbyUnits(servico: HealthService, finder: HealthUnitFinder 
       units: result?.servico === servico ? result.units : [],
       origin: MOCK_USER_LOCATION,
       notice: APPROXIMATE_LOCATION_NOTICE,
+      compactNotice: COMPACT_LOCATION_NOTICE,
       loading: result?.servico !== servico,
     }),
     [result, servico],

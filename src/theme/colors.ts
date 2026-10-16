@@ -21,6 +21,15 @@ export const colors = {
   mintStrong: '#D9EEEC',
   iconTile: '#DCEDFA',
   iconTileForeground: '#1F6F86',
+  /** Degradê vertical sutil dos quadrados de ícone (topo → base). */
+  iconTileTop: '#E8F3FC',
+  iconTileBottom: '#D3E7F7',
+
+  /** Véu translúcido sobre o mapa (tira o bege do Apple Maps). */
+  mapTint: 'rgba(214, 228, 228, 0.3)',
+
+  avatarSurface: '#E6EDF3',
+  avatarPerson: '#1D4A62',
 
   textHeading: '#0B1B2E',
   textBody: '#2A3140',

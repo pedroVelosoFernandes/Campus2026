@@ -20,7 +20,8 @@ jest.mock('react-native-maps', () => {
   const Marker = (props: { children?: React.ReactNode; coordinate: { latitude: number } }) => (
     <View testID={`marker-${props.coordinate.latitude}`}>{props.children}</View>
   );
-  return { __esModule: true, default: MapView, Marker };
+  const Polygon = () => null;
+  return { __esModule: true, default: MapView, Marker, Polygon };
 });
 
 const mockedParams = jest.mocked(useLocalSearchParams);

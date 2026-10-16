@@ -1,56 +1,43 @@
-# Welcome to your Expo app 👋
+# Alô Saúde
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Assistente de orientação de acesso ao SUS, por voz e texto. Veja o produto em [docs/features.md](docs/features.md), as telas de referência em [docs/design/](docs/design/) e os prints do app em [docs/screenshots/](docs/screenshots/).
 
-## Get started
+## Stack
 
-1. Install dependencies
+- Expo SDK 58 + React Native + Expo Router (rotas em `src/app`)
+- react-native-gesture-handler + Reanimated para gestos e animações
+- Voz: GPT-Live (`gpt-live-1`) com delegação para o GPT-Sol (`gpt-6-sol`), que substitui temporariamente o modelo próprio de sintomas, ainda não treinado. Detalhes em [docs/arquitetura-voz.md](docs/arquitetura-voz.md).
+- Dados de usuário e unidades de saúde são mockados (`src/mocks`).
 
-   ```bash
-   npm install
-   ```
+## Estrutura
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+src/
+  app/         rotas (telas) e rotas de API do servidor (app/api)
+  components/  componentes compartilhados e por tela
+  features/    voz e texto (máquina de estados, transportes, hooks)
+  services/    modelo de sintomas, unidades de saúde, servidor
+  mocks/       dados e conversa de demonstração
+  theme/       cores, tipografia, espaçamentos
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Rodando
 
-### Other setup steps
+```bash
+pnpm install
+cp .env.example .env   # sem OPENAI_API_KEY o app roda no modo de demonstração
+pnpm expo run:ios      # build de desenvolvimento (react-native-webrtc é nativo)
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+No macOS, se o `pod install` falhar com erro de Unicode, exporte `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` antes.
 
-## Learn more
+## Qualidade
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+pnpm lint       # inclui limite de 500 linhas por arquivo e 80 por função
+pnpm typecheck
+pnpm test
+pnpm doctor     # React Doctor
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+O CI (`.github/workflows/ci.yml`) roda os quatro em cada push e pull request.

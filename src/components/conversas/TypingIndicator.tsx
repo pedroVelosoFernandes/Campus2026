@@ -56,7 +56,7 @@ function TypingIndicatorBase() {
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel="O assistente está escrevendo">
-      <Avatar kind="assistant" size={36} />
+      <Avatar kind="assistant" size={44} />
       <View style={styles.bubble}>
         <Dot progress={a} />
         <Dot progress={b} />
@@ -69,12 +69,12 @@ function TypingIndicatorBase() {
 export const TypingIndicator = memo(TypingIndicatorBase);
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   bubble: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 46,
+    height: 52,
     paddingHorizontal: spacing.lg + spacing.xs,
     borderRadius: radii.lg,
     backgroundColor: colors.bubbleAssistant,

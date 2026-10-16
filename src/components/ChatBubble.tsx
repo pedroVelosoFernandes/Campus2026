@@ -21,7 +21,7 @@ function ChatBubbleBase({ role, text, showAvatar }: ChatBubbleProps) {
       style={[styles.row, isUser && styles.rowUser]}
       accessible
       accessibilityLabel={`${isUser ? 'Você' : 'Assistente'}: ${text}`}>
-      {withAvatar ? <Avatar kind={isUser ? 'user' : 'assistant'} size={36} /> : null}
+      {withAvatar ? <Avatar kind={isUser ? 'user' : 'assistant'} size={44} /> : null}
       <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
         <Text style={styles.text}>{text}</Text>
       </View>
@@ -32,16 +32,15 @@ function ChatBubbleBase({ role, text, showAvatar }: ChatBubbleProps) {
 export const ChatBubble = memo(ChatBubbleBase);
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   rowUser: { justifyContent: 'flex-end' },
   bubble: {
-    flexShrink: 1,
-    maxWidth: '82%',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.lg,
+    paddingVertical: spacing.lg + 2,
+    paddingHorizontal: spacing.lg + 2,
+    borderRadius: radii.xl,
   },
-  bubbleAssistant: { backgroundColor: colors.bubbleAssistant },
-  bubbleUser: { backgroundColor: colors.bubbleUser },
-  text: { ...typography.body, color: colors.textBody },
+  // Assistente ocupa a largura até a margem; usuário quebra a linha antes (~72%), como no design.
+  bubbleAssistant: { flex: 1, backgroundColor: colors.bubbleAssistant },
+  bubbleUser: { flexShrink: 1, maxWidth: '72%', backgroundColor: colors.bubbleUser },
+  text: { ...typography.bodyLarge, color: colors.textBody },
 });

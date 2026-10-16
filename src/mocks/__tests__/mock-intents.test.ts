@@ -41,6 +41,30 @@ describe('summarizeToolOutput', () => {
     expect(text).toContain('Confirme no 136.');
   });
 
+  it('na vacinação fala de documentos e campanha, não de consultas de rotina', () => {
+    const output = JSON.stringify({
+      servico: 'vacinacao',
+      usedLocation: false,
+      notice: 'Confirme nos canais oficiais.',
+      units: [
+        {
+          name: 'UBS X',
+          address: 'Rua Y',
+          distanceKm: null,
+          hours: '7h às 19h',
+          howToAccess: 'Consultas de rotina são agendadas na recepção.',
+        },
+      ],
+    });
+    const text = summarizeToolOutput(UNITS_TOOL_NAME, output);
+    expect(text).toContain('documento com foto');
+    expect(text).toContain('Cartão SUS ou CPF');
+    expect(text).toContain('carteira de vacinação');
+    expect(text).toContain('calendário da campanha do seu município');
+    expect(text).not.toContain('Consultas de rotina');
+    expect(text).toContain('Confirme nos canais oficiais.');
+  });
+
   it('saída inválida vira orientação segura', () => {
     expect(summarizeToolOutput(UNITS_TOOL_NAME, 'nope')).toContain('136');
   });

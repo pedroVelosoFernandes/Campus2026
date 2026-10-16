@@ -73,13 +73,18 @@ export function routeMockIntent(rawText: string): MockIntent {
   return { kind: 'reply', text: HELP_REPLY };
 }
 
+/** Orientação própria da vacinação: o "como acessar" da unidade costuma falar de consultas. */
+export const VACCINE_ACCESS_TIP =
+  'Para se vacinar, leve documento com foto, Cartão SUS ou CPF e a carteira de vacinação, se tiver. ' +
+  'A vacina da gripe segue o calendário da campanha do seu município.';
+
 function describeUnits(result: UnitSearchResult): string {
   const [first, second] = result.units;
   if (!first) return result.notice;
   const where = first.address ? `, na ${first.address}` : '';
   const distance = first.distanceKm !== null ? `, a ${String(first.distanceKm).replace('.', ',')} km` : '';
   const parts = [`A opção mais indicada é ${first.name}${where}${distance}. Horário: ${first.hours}.`];
-  parts.push(first.howToAccess);
+  parts.push(result.servico === 'vacinacao' ? VACCINE_ACCESS_TIP : first.howToAccess);
   if (second) parts.push(`Outra opção é ${second.name}.`);
   parts.push(result.notice);
   return parts.join(' ');

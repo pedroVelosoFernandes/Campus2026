@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
-import { FlatList, KeyboardAvoidingView, Linking, Platform, StyleSheet, View, type ListRenderItem } from 'react-native';
+import { FlatList, Linking, StyleSheet, View, type ListRenderItem } from 'react-native';
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,6 +17,8 @@ import {
 import { QuickReplies } from '@/components/conversas/QuickReplies';
 import { SuggestedActionCard } from '@/components/conversas/SuggestedActionCard';
 import { TypingIndicator } from '@/components/conversas/TypingIndicator';
+import { useKeyboardInset } from '@/components/conversas/useKeyboardInset';
+import { useStickToBottom } from '@/components/conversas/useStickToBottom';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useTextAssistant } from '@/features/voice';
 import { colors, screenPadding, spacing } from '@/theme';
@@ -36,6 +38,7 @@ export default function ConversasScreen() {
   const { topic } = useLocalSearchParams<{ topic?: string }>();
   const { state, transcript, suggestedAction, sendMessage } = useTextAssistant();
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  const { containerRef, insetStyle } = useKeyboardInset();
 
   const messages = useMemo(() => [greetingFor(topic), ...toChatMessages(transcript)], [topic, transcript]);
   const typing = isAssistantTyping(state, messages);
@@ -43,7 +46,7 @@ export default function ConversasScreen() {
   const actionRoute = suggestedAction ? routeForAction(suggestedAction) : null;
 
   const send = useCallback((text: string) => void sendMessage(text), [sendMessage]);
-  const scrollToEnd = useCallback(() => listRef.current?.scrollToEnd({ animated: true }), []);
+  const { onContentSizeChange, onListLayout } = useStickToBottom(listRef);
 
   const footer = (
     <View style={styles.footer}>
@@ -60,7 +63,7 @@ export default function ConversasScreen() {
   );
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <Animated.View ref={containerRef} style={[styles.flex, insetStyle]}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScreenHeader title="Orientação de atendimento" titleAlign="left" onBack={goBack} />
         <FlatList
@@ -73,14 +76,14 @@ export default function ConversasScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={scrollToEnd}
-          onLayout={scrollToEnd}
+          onContentSizeChange={onContentSizeChange}
+          onLayout={onListLayout}
         />
         <View style={styles.composer}>
           <ChatComposer onSend={send} onMicPress={openVoice} />
         </View>
       </SafeAreaView>
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 }
 

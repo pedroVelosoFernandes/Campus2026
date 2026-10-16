@@ -20,8 +20,8 @@ import { UnitMap } from '@/components/vacinacao/UnitMap';
 import { UnitsSheet } from '@/components/vacinacao/UnitsSheet';
 import { colors, screenPadding, spacing, typography } from '@/theme';
 
-const MAP_HEIGHT = 272;
-const CARD_OVERLAP = 30;
+const MAP_HEIGHT = 300;
+const CARD_OVERLAP = 44;
 const CARD_HINT = 'Confirme horários e disponibilidade.';
 const CARD_ENTER = FadeInDown.duration(320).reduceMotion(ReduceMotion.System);
 
@@ -33,7 +33,7 @@ function goBack() {
 export default function VacinacaoScreen() {
   const { servico } = useLocalSearchParams<{ servico?: string }>();
   const copy = VARIANTS[variantFromParam(servico)];
-  const { units, origin, notice } = useNearbyUnits(copy.servico);
+  const { units, origin, notice, compactNotice } = useNearbyUnits(copy.servico);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -66,6 +66,7 @@ export default function VacinacaoScreen() {
           showMarker={!!selectedCoords}
           calloutLabel="Exemplo de unidade"
           height={MAP_HEIGHT}
+          coveredBottom={CARD_OVERLAP}
           accessibilityLabel={name ? `Mapa com a localização de exemplo de ${name}` : 'Mapa da região'}
         />
 
@@ -82,7 +83,7 @@ export default function VacinacaoScreen() {
 
         <View style={styles.below}>
           <InfoNote title={copy.noteTitle} message={copy.noteMessage} />
-          <Text style={styles.notice}>{notice}</Text>
+          <Text style={styles.notice}>{compactNotice}</Text>
         </View>
       </ScrollView>
 
@@ -106,9 +107,9 @@ const styles = StyleSheet.create({
     color: colors.textHeading,
     paddingHorizontal: screenPadding + spacing.xs,
     marginTop: spacing.xs,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   card: { marginTop: -CARD_OVERLAP, marginHorizontal: screenPadding },
   below: { marginTop: spacing.lg, marginHorizontal: screenPadding, gap: spacing.lg },
-  notice: { ...typography.caption, fontSize: 13, lineHeight: 18, color: colors.textMuted, paddingHorizontal: spacing.xs },
+  notice: { ...typography.caption, fontSize: 12, lineHeight: 16, color: colors.textMuted, textAlign: 'center' },
 });

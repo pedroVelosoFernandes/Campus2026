@@ -23,7 +23,7 @@ const TranscriptBubble = memo(function TranscriptBubble({ role, text }: SpokenMe
       style={styles.row}
       accessible
       accessibilityLabel={`${isUser ? 'Você' : 'Assistente'}: ${text}`}>
-      <Avatar kind={isUser ? 'user' : 'assistant'} size={40} style={isUser ? styles.userAvatar : undefined} />
+      <Avatar kind={isUser ? 'user' : 'assistant'} size={44} style={isUser ? styles.userAvatar : undefined} />
       <View style={styles.bubble}>
         <Text style={styles.text}>{text}</Text>
       </View>
@@ -77,11 +77,11 @@ export const TranscriptList = memo(TranscriptListBase);
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: screenPadding, paddingVertical: spacing.sm, gap: spacing.lg },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  userAvatar: { backgroundColor: colors.bubbleAssistant },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  userAvatar: { backgroundColor: colors.avatarSurface },
   bubble: {
     flex: 1,
-    paddingVertical: spacing.md + 2,
+    paddingVertical: spacing.lg,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.lg,
     backgroundColor: colors.bubbleAssistant,

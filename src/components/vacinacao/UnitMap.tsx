@@ -1,7 +1,7 @@
 import { Building2 } from 'lucide-react-native';
 import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, type Region } from 'react-native-maps';
+import MapView, { Marker, Polygon, type Region } from 'react-native-maps';
 
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme';
 
@@ -15,12 +15,28 @@ export type UnitMapProps = {
   /** Rótulo da pílula sobre o pino (ex.: "Exemplo de unidade"). */
   calloutLabel: string;
   height: number;
+  /** Altura coberta pelo cartão sobreposto: o logo e o link "Legal" sobem acima dela. */
+  coveredBottom?: number;
   accessibilityLabel: string;
 };
 
-const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
+const DELTA = { latitudeDelta: 0.015, longitudeDelta: 0.015 };
 /** Desloca o centro para o sul, deixando o pino acima do cartão que sobrepõe o mapa. */
 const CENTER_OFFSET = 0.0016;
+
+/**
+ * Véu frio sobre o terreno: o "mutedStandard" da Apple é bege; o design é cinza-esverdeado.
+ * Polígonos ficam abaixo dos rótulos e do pino, então nomes de rua seguem nítidos.
+ */
+const TINT_SPAN = 0.2;
+function tintAround({ latitude, longitude }: Coordinates) {
+  return [
+    { latitude: latitude - TINT_SPAN, longitude: longitude - TINT_SPAN },
+    { latitude: latitude - TINT_SPAN, longitude: longitude + TINT_SPAN },
+    { latitude: latitude + TINT_SPAN, longitude: longitude + TINT_SPAN },
+    { latitude: latitude + TINT_SPAN, longitude: longitude - TINT_SPAN },
+  ];
+}
 
 function regionFor(coords: Coordinates): Region {
   return { latitude: coords.latitude - CENTER_OFFSET, longitude: coords.longitude, ...DELTA };
@@ -42,7 +58,14 @@ function UnitPin({ label }: { label: string }) {
   );
 }
 
-function UnitMapBase({ coordinates, showMarker, calloutLabel, height, accessibilityLabel }: UnitMapProps) {
+function UnitMapBase({
+  coordinates,
+  showMarker,
+  calloutLabel,
+  height,
+  coveredBottom = 0,
+  accessibilityLabel,
+}: UnitMapProps) {
   const mapRef = useRef<MapView>(null);
   const { latitude, longitude } = coordinates;
   const isFirst = useRef(true);
@@ -69,7 +92,16 @@ function UnitMapBase({ coordinates, showMarker, calloutLabel, height, accessibil
         showsScale={false}
         toolbarEnabled={false}
         pitchEnabled={false}
-        rotateEnabled={false}>
+        rotateEnabled={false}
+        appleLogoInsets={{ top: 0, right: 0, left: spacing.sm, bottom: coveredBottom + spacing.xs }}
+        legalLabelInsets={{ top: 0, left: 0, right: spacing.sm, bottom: coveredBottom + spacing.xs }}>
+        <Polygon
+          coordinates={tintAround(coordinates)}
+          fillColor={colors.mapTint}
+          strokeWidth={0}
+          strokeColor="transparent"
+          tappable={false}
+        />
         {showMarker ? (
           <Marker coordinate={coordinates} anchor={{ x: 0.5, y: 1 }} tracksViewChanges={false}>
             <UnitPin label={calloutLabel} />

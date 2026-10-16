@@ -1,11 +1,12 @@
 import { Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
 import { House, MessageSquare, User } from 'lucide-react-native';
 
+import { HouseFilled } from '@/components/icons/HouseFilled';
 import { TabBar, type TabBarTab } from '@/components/TabBar';
 import { colors } from '@/theme';
 
 const TABS: readonly TabBarTab[] = [
-  { key: '(inicio)', label: 'Início', icon: House },
+  { key: '(inicio)', label: 'Início', icon: House, activeIcon: HouseFilled },
   { key: 'conversas/index', label: 'Conversas', icon: MessageSquare },
   { key: 'perfil', label: 'Perfil', icon: User },
 ];
