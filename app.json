@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "alo",
-    "slug": "alo",
+    "name": "Alô Saúde",
+    "slug": "alo-saude",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "alo",
+    "scheme": "alosaude",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"

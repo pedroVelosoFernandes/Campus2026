@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint (inclui limite de 500 linhas por arquivo e 80 por função)
+        run: pnpm lint
+      - name: TypeScript typecheck
+        run: pnpm typecheck
+      - name: Testes
+        run: pnpm test --ci
+      - name: React Doctor
+        run: pnpm doctor
