@@ -113,6 +113,7 @@ viva-voz forçado tem prioridade sobre fones Bluetooth.
 | `OPENAI_LIVE_MODEL`, `SYMPTOM_MODEL` | servidor | não | modelos (padrões no código) |
 | `APP_SESSION_SECRET` | servidor | **sim** (≥ 32 caracteres) | tokens de sessão do app |
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` | servidor | **sim** | código por SMS (auth) |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL_ID` | servidor | **sim** (a chave) | voz da ElevenLabs (opcional) |
 | `ALLOWED_ORIGINS` | servidor | não | origens web aceitas (não autentica) |
 | `NODE_EXTRA_CA_CERTS` | servidor (host Node) | não | cadeia do IBGE (seção 2) |
 | `EXPO_PUBLIC_API_URL` | app (build) | não | URL das rotas `/api`; vazia = modo demonstração |
